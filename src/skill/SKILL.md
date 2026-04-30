@@ -83,8 +83,8 @@ projectsmd session --non-interactive --summary "Implemented auth middleware, fix
 When all tasks in a phase are done, transition to the next phase:
 
 ```bash
-projectsmd phase transition build    # Move to build phase
-projectsmd phase transition verify   # Move to verify phase
+projectsmd phase --transition build    # Move to build phase
+projectsmd phase --transition verify   # Move to verify phase
 ```
 
 The phase command runs an evolution checklist:
@@ -118,7 +118,7 @@ For new projects:
 
 ```bash
 projectsmd init                          # Interactive wizard
-projectsmd init --name "My App" --owner "Alice"  # With flags
+projectsmd init --name "My App" --owner "Alice" --description "A useful app." --core-value "Make work easier."  # Non-interactive
 projectsmd init --brownfield             # For existing codebases
 ```
 

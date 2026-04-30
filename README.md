@@ -236,7 +236,7 @@ The agent reads this and knows exactly what to do. No re-explaining needed.
 When all BUILD tasks are done:
 
 ```bash
-projectsmd phase transition verify
+projectsmd phase --transition verify
 ```
 
 This runs the Evolution checklist:
@@ -258,7 +258,7 @@ projectsmd archive --summary "v1.0 released. Book management working with local 
 
 ```bash
 projectsmd init                              # Interactive wizard
-projectsmd init --name "my-app" --owner "Alice"
+projectsmd init --name "my-app" --owner "Alice" --description "A useful app." --core-value "Make work easier."
 projectsmd init --brownfield                 # For existing codebases
 projectsmd init --from old-project.md        # Import context from file
 projectsmd init --template custom.md         # Use custom template
@@ -730,7 +730,7 @@ The skill teaches agents the full project.md lifecycle:
 1. **Session start:** `projectsmd status` → `projectsmd next` → read Current State
 2. **During work:** `projectsmd task done N`, `projectsmd decide`, `projectsmd discover`
 3. **Session end:** `projectsmd session` (interactive wrap-up)
-4. **Phase transitions:** `projectsmd phase transition verify`
+4. **Phase transitions:** `projectsmd phase --transition verify`
 
 ### Generate Project-Specific Skills
 
@@ -799,10 +799,10 @@ projectsmd session
 ```bash
 # All BUILD tasks done?
 projectsmd task list --phase BUILD --pending  # Verify none left
-projectsmd phase transition verify            # Move to VERIFY
+projectsmd phase --transition verify            # Move to VERIFY
 
 # All VERIFY tasks done?
-projectsmd phase transition ship              # Move to SHIP
+projectsmd phase --transition ship              # Move to SHIP
 
 # Project complete?
 projectsmd archive --summary "v1.0 released"
