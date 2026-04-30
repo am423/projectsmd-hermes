@@ -706,24 +706,93 @@ Hermes should load the installed `projectsmd` skill whenever work spans multiple
 
 ## Hermes Dashboard Plugin
 
-This repo includes a standalone Hermes Agent dashboard plugin that adds a `Projects` tab at `/projects`.
+This repo includes a full-featured Hermes Agent dashboard plugin that adds a `Projects` tab at `/projects`.
 
-Install it from a local clone:
+### Features
+
+- **Project Browser** — Scans configured roots for `project.md` files, shows phase, task counts, and current state
+- **Native Section Rendering** — Tasks rendered as interactive checkboxes with Done/Block/Unblock buttons; Key Decisions as sortable cards; Discoveries as dated notes
+- **Mutation UI** — Inline + Add buttons for tasks, decisions, discoveries; all mutations go through the safe CLI wrapper with file locking
+- **Diff Preview / Approval Queue** — Paste proposed `project.md` content to see a unified diff; queue for approval with Approve/Reject workflow
+- **Orchestrator / Agent Board** — Launch agent runs with task description and role selection (builder, reviewer, architect); poll for live output; kill switch
+- **Quality Gates** — Checklist-based validation (tests, lint, docs, review, secrets, compat) with pass/fail/reset
+- **Ship Checklist** — Per-project pre-release verification
+- **GitHub Integration** — Auto-detect repo from git remote, list issues and PRs via `gh` CLI
+- **Snapshots** — One-click timestamped backups of `project.md` before any mutation; restore from snapshot
+- **Safety Policies** — Block destructive commands (rm -rf, git push --force, dd); warn on sudo
+- **Keyboard Shortcuts** — `Ctrl+R` rescan, `Ctrl+N` select project by path, `Escape` clear selection
+- **Onboarding Walkthrough** — Step-by-step overlay for new users
+
+### Install
 
 ```bash
 bash scripts/install-dashboard-plugin.sh
 hermes dashboard --no-open
 ```
 
-Then open:
+Then open `http://127.0.0.1:9119/projects`
 
-```text
-http://127.0.0.1:9119/projects
+### API
+
+The plugin exposes a FastAPI router under `/api/plugins/projectsmd/`:
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/health` | GET | Plugin health + tool versions |
+| `/config` | GET/PUT | Plugin configuration (project roots) |
+| `/projects` | GET | List all projects with summaries |
+| `/projects/detail` | GET | Full project detail |
+| `/projects` | POST | Create new project |
+| `/projects/{id}/validate` | POST | Validate project.md |
+| `/projects/{id}/tasks` | POST | Add task |
+| `/projects/{id}/tasks/{tid}/done` | POST | Mark task done |
+| `/projects/{id}/tasks/{tid}/block` | POST | Block task |
+| `/projects/{id}/tasks/{tid}/unblock` | POST | Unblock task |
+| `/projects/{id}/decisions` | POST | Add decision |
+| `/projects/{id}/discoveries` | POST | Add discovery |
+| `/projects/{id}/session` | POST | Record session summary |
+| `/projects/{id}/phase-transition` | POST | Transition phase |
+| `/projects/{id}/archive` | POST | Archive project |
+| `/projects/{id}/snapshot` | POST | Create snapshot |
+| `/projects/{id}/snapshots` | GET | List snapshots |
+| `/projects/{id}/restore` | POST | Restore from snapshot |
+| `/projects/{id}/diff` | POST | Preview diff |
+| `/projects/{id}/queue` | GET/POST | Pending update queue |
+| `/projects/{id}/queue/{uid}/approve` | POST | Approve queued update |
+| `/projects/{id}/queue/{uid}/reject` | POST | Reject queued update |
+| `/projects/{id}/runs` | GET/POST | List / launch runs |
+| `/projects/{id}/runs/{rid}` | GET | Run detail |
+| `/projects/{id}/runs/{rid}/poll` | GET | Poll for new events |
+| `/projects/{id}/runs/{rid}/kill` | POST | Kill run |
+| `/projects/{id}/ship` | GET | Ship checklist status |
+| `/projects/{id}/ship/{item}/check` | POST | Check ship item |
+| `/projects/{id}/ship/{item}/uncheck` | POST | Uncheck ship item |
+| `/roster` | GET/PUT | Agent role roster |
+| `/policies` | GET/PUT | Safety policies |
+| `/policies/check` | POST | Check command against policies |
+| `/gates` | GET/PUT | Quality gates |
+| `/gates/{gid}/check` | POST | Check gate |
+| `/gates/{gid}/fail` | POST | Fail gate |
+| `/gates/{gid}/reset` | POST | Reset gate |
+| `/gates/run` | POST | Run all gates |
+| `/github/repo` | GET | Detect repo from git remote |
+| `/github/issues` | GET | List issues via gh CLI |
+| `/github/prs` | GET | List PRs via gh CLI |
+
+See [docs/dashboard-plugin.md](docs/dashboard-plugin.md) for the original read-only design doc.
+
+### Development
+
+```bash
+# Run all tests
+python3 -m pytest tests -v
+
+# Run smoke test
+bash scripts/smoke-test-dashboard-plugin.sh
+
+# Check bundle syntax
+node --check dashboard/dist/index.js
 ```
-
-The current plugin slice is read-only. It scans for `project.md` files, shows project phase/current state/task counts, and includes a disabled launch panel for the planned tmux orchestrator/subagent workflow.
-
-See [docs/dashboard-plugin.md](docs/dashboard-plugin.md) for API routes, root configuration, security notes, and development checks.
 
 ### agentskills.io Compliant
 
