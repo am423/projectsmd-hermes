@@ -30,7 +30,7 @@ from .tmux_runtime import kill_run, spawn_run
 from .update_queue import approve_update, enqueue_update, list_pending, reject_update
 from .gates import QualityGate, check_gate, fail_gate, load_gates, reset_gate, run_all_gates, save_gates
 from .github_integration import get_repo_info, list_issues, list_prs
-from .ship_checklist import ShipItem, check_ship_item, load_ship_checklist, save_ship_checklist, ship_status, uncheck_ship_item
+from .ship_checklist import check_ship_item, ship_status, uncheck_ship_item
 
 try:
     from fastapi import APIRouter, HTTPException

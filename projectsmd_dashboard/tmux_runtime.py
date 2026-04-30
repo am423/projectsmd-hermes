@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import threading
 import time
-from pathlib import Path
 from typing import Any
 
 from .run_registry import RunRegistry

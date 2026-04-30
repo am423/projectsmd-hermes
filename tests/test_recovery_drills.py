@@ -10,7 +10,7 @@ from pathlib import Path
 
 from projectsmd_dashboard.gates import _default_gates, check_gate, load_gates, reset_gate, save_gates
 from projectsmd_dashboard.snapshots import list_snapshots, restore_snapshot, snapshot
-from projectsmd_dashboard.update_queue import _load_queue, _save_queue, enqueue_update, reject_update
+from projectsmd_dashboard.update_queue import _load_queue, enqueue_update, reject_update
 
 
 def test_snapshot_and_restore():

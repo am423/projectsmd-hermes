@@ -4,11 +4,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.update_queue import (
-    PendingUpdate,
-    _queue_path,
     approve_update,
     enqueue_update,
     list_pending,

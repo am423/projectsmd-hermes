@@ -3,9 +3,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.config import default_config, load_config, save_config
 

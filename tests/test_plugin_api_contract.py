@@ -5,20 +5,17 @@ TestClient and verify routes, status codes, and response shapes.
 """
 from __future__ import annotations
 
-import json
 import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from projectsmd_dashboard.api import router
+from projectsmd_dashboard.api import router  # noqa: E402
 
 app = FastAPI()
 app.include_router(router, prefix="/api/plugins/projectsmd")

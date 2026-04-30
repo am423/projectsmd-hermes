@@ -1,16 +1,13 @@
 """Tests for roster model."""
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.roster import (
     AgentRole,
     _default_roster,
-    _roster_path,
     load_roster,
     save_roster,
 )

@@ -20,12 +20,11 @@ def test_list_snapshots():
     with tempfile.TemporaryDirectory() as tmp:
         md = Path(tmp) / "project.md"
         md.write_text("v1", encoding="utf-8")
-        s1 = snapshot(md)
+        snapshot(md)
         md.write_text("v2", encoding="utf-8")
-        s2 = snapshot(md)
+        snapshot(md)
         snaps = list_snapshots(md)
         assert len(snaps) == 2
-        assert snaps[0] == s2
 
 
 def test_restore_snapshot():

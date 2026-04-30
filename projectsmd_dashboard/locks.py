@@ -6,7 +6,6 @@ process restarts and works without extra dependencies.
 from __future__ import annotations
 
 import os
-import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path

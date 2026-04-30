@@ -5,7 +5,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.locks import project_lock
 from projectsmd_dashboard.projectsmd_cli import init, task_add, validate

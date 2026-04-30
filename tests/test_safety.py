@@ -4,12 +4,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.safety import (
     SafetyPolicy,
-    _default_policies,
-    _policies_path,
     check_command,
     load_policies,
     save_policies,

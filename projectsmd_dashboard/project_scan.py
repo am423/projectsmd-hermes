@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .models import CurrentState, ProjectDetail, ProjectSummary, TaskCounts
+from .models import CurrentState, ProjectSummary, TaskCounts
 
 TASK_RE = re.compile(r"^\s*- \[(?P<mark>[ xX])\]\s+(?P<body>.*)$")
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)

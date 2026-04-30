@@ -5,10 +5,7 @@ be available in all environments).
 """
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.tmux_runtime import _session_name, _tmux_available
 

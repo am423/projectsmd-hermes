@@ -4,16 +4,13 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from projectsmd_dashboard.gates import (
     QualityGate,
     _default_gates,
-    _gates_path,
     check_gate,
     fail_gate,
     load_gates,
-    reset_gate,
     run_all_gates,
     save_gates,
 )
