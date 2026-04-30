@@ -126,6 +126,17 @@ projectsmd init --brownfield             # For existing codebases
 
 This skill is framework-agnostic. It works with any AI coding agent.
 
+### Hermes Dashboard Plugin
+
+This repo can be installed as a Hermes dashboard plugin that adds a `Projects` tab:
+
+```bash
+bash scripts/install-dashboard-plugin.sh
+hermes dashboard --no-open
+```
+
+Open `http://127.0.0.1:9119/projects` to browse discovered `project.md` files visually. The current dashboard slice is read-only and shows project phase, Current State, task counts, decisions, discoveries, and raw markdown. Tmux orchestrator/subagent launch is planned as the next slice.
+
 ### Pattern: Context-Aware Session
 
 1. Load context: `projectsmd status` → `projectsmd next`

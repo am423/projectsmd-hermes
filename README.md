@@ -16,6 +16,7 @@ No databases. No web apps. No external services. Just one file and one binary.
 - [Commands Reference](#commands-reference)
 - [The project.md Format](#the-projectmd-format)
 - [Agent Integration](#agent-integration)
+- [Hermes Dashboard Plugin](#hermes-dashboard-plugin)
 - [Workflows](#workflows)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
@@ -702,6 +703,27 @@ projectsmd next
 ```
 
 Hermes should load the installed `projectsmd` skill whenever work spans multiple tasks or sessions, then keep `project.md` current as the source of truth.
+
+## Hermes Dashboard Plugin
+
+This repo includes a standalone Hermes Agent dashboard plugin that adds a `Projects` tab at `/projects`.
+
+Install it from a local clone:
+
+```bash
+bash scripts/install-dashboard-plugin.sh
+hermes dashboard --no-open
+```
+
+Then open:
+
+```text
+http://127.0.0.1:9119/projects
+```
+
+The current plugin slice is read-only. It scans for `project.md` files, shows project phase/current state/task counts, and includes a disabled launch panel for the planned tmux orchestrator/subagent workflow.
+
+See [docs/dashboard-plugin.md](docs/dashboard-plugin.md) for API routes, root configuration, security notes, and development checks.
 
 ### agentskills.io Compliant
 

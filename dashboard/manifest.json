@@ -1,0 +1,14 @@
+{
+  "name": "projectsmd",
+  "label": "Projects",
+  "description": "ProjectsMD-powered project browsing and orchestration for Hermes Agent",
+  "icon": "FileText",
+  "version": "0.1.0",
+  "tab": {
+    "path": "/projects",
+    "position": "after:sessions"
+  },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

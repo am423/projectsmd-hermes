@@ -22,7 +22,24 @@ That installs the embedded skill to:
 ~/.hermes/skills/projectsmd/
 ```
 
-The source skill text is also committed at `agent-skill.md` and embedded in the Rust crate under `src/skill/SKILL.md`.
+The source skill text is embedded in the Rust crate under `src/skill/SKILL.md`.
+
+## Install the Hermes dashboard plugin
+
+ProjectsMD also ships a Hermes dashboard plugin that adds a `Projects` tab at `/projects`.
+
+```bash
+bash scripts/install-dashboard-plugin.sh
+hermes dashboard --no-open
+```
+
+Then open:
+
+```text
+http://127.0.0.1:9119/projects
+```
+
+The first plugin slice is read-only: it scans for `project.md` files, shows project phase/current state/task counts, and provides a placeholder for the planned tmux orchestrator/subagent launcher. See `docs/dashboard-plugin.md`.
 
 ## Test workflow with Hermes
 
