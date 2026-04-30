@@ -24,6 +24,8 @@ class DashboardManifestTests(unittest.TestCase):
     def test_frontend_bundle_uses_hermes_plugin_sdk(self):
         bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
         self.assertIn("window.__HERMES_PLUGIN_SDK__", bundle)
+        self.assertIn("SDK.components", bundle)
+        self.assertIn("SDK.hooks", bundle)
         self.assertIn("window.__HERMES_PLUGINS__.register", bundle)
         self.assertIn("projectsmd", bundle)
 
