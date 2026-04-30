@@ -24,3 +24,6 @@ spec.loader.exec_module(module)
 assert hasattr(module, 'router')
 print('dashboard smoke ok')
 PY
+
+printf 'Dashboard smoke passed.\n'
+printf 'If you changed plugin_api.py routes, restart hermes dashboard for them to mount.\n'

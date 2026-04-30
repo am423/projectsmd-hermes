@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "projectsmd-dashboard"
+version = "0.1.0"
+description = "ProjectsMD Hermes dashboard plugin backend"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "fastapi>=0.100",
+    "httpx>=0.24",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.6",
+]
+
+[tool.setuptools]
+packages = ["projectsmd_dashboard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"

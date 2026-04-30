@@ -96,12 +96,70 @@
       })));
   }
 
-  function SectionBlock({ title, body }) {
-    if (!String(body || "").trim()) return null;
+  function SectionBlock({ title, body, children, onAdd }) {
+    if (!String(body || "").trim() && !children) return null;
     return h(Card, null,
-      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, title)),
+      h(CardHeader, { className: "pb-2 flex items-center justify-between" },
+        h(CardTitle, { className: "text-sm" }, title),
+        onAdd ? h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: onAdd }, "+ Add") : null),
       h(CardContent, { className: "pt-0" },
-        h("pre", { className: "max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground" }, body)));
+        children || h("pre", { className: "max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground" }, body)));
+  }
+
+  function TaskList({ body, onTaskAction }) {
+    if (!body) return null;
+    const lines = body.split("\n");
+    const tasks = [];
+    let currentPhase = "";
+    for (const line of lines) {
+      const phaseMatch = line.match(/^### Phase:\s*(.+)$/i);
+      if (phaseMatch) {
+        currentPhase = phaseMatch[1].trim();
+        continue;
+      }
+      const taskMatch = line.match(/^\s*- \[([ xX])\]\s+(.*)$/);
+      if (taskMatch) {
+        tasks.push({ done: taskMatch[1].toLowerCase() === "x", body: taskMatch[2], phase: currentPhase });
+      }
+    }
+    if (!tasks.length) {
+      return h("pre", { className: "max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground" }, body);
+    }
+    return h("div", { className: "flex flex-col gap-1" },
+      tasks.map((task, i) =>
+        h("div", { key: i, className: "flex items-start gap-2 rounded-md border border-border bg-background/40 px-3 py-2 text-sm" },
+          h("span", { className: task.done ? "text-primary" : "text-muted-foreground" }, task.done ? "✓" : "○"),
+          h("span", { className: task.done ? "line-through text-muted-foreground" : "text-foreground" }, task.body),
+          task.phase ? h("span", { className: "ml-auto text-xs text-muted-foreground" }, task.phase) : null,
+          h("div", { className: "ml-auto flex gap-1" },
+            h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: async (e) => { e.stopPropagation(); await onTaskAction(task.id || i, "done"); } }, "Done"),
+            h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: async (e) => { e.stopPropagation(); await onTaskAction(task.id || i, "block"); } }, "Block"),
+            h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: async (e) => { e.stopPropagation(); await onTaskAction(task.id || i, "unblock"); } }, "Unblock")))));
+  }
+
+  function DecisionTable({ body }) {
+    if (!body) return null;
+    const lines = body.split("\n");
+    const rows = [];
+    let inTable = false;
+    for (const line of lines) {
+      if (line.trim().startsWith("| Decision ")) { inTable = true; continue; }
+      if (line.trim().startsWith("|")) {
+        const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+        if (cells.length >= 3 && cells[0] !== "Decision") {
+          rows.push({ decision: cells[0], rationale: cells[1], outcome: cells[2] });
+        }
+      }
+    }
+    if (!rows.length) {
+      return h("pre", { className: "max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground" }, body);
+    }
+    return h("div", { className: "flex flex-col gap-2" },
+      rows.map((row, i) =>
+        h("div", { key: i, className: "rounded-md border border-border bg-background/40 p-3 text-sm" },
+          h("div", { className: "font-medium" }, row.decision || "Untitled"),
+          h("div", { className: "mt-1 text-xs text-muted-foreground" }, "Rationale: ", row.rationale || "—"),
+          h("div", { className: "mt-1 text-xs text-muted-foreground" }, "Outcome: ", row.outcome || "—"))));
   }
 
   function DetailHeader({ detail }) {
@@ -146,21 +204,83 @@
       h(CurrentState, { detail }),
       h("div", { className: "grid gap-4 xl:grid-cols-2" },
         h(SectionBlock, { title: "What This Is", body: sections["What This Is"] }),
-        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"] })),
-      h(SectionBlock, { title: "Tasks", body: sections.Tasks }),
-      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries }),
+        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"], children: h(DecisionTable, { body: sections["Key Decisions"] }), onAdd: async () => { const text = prompt("Decision:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/decisions`, { method: "POST", body: { path: detail.path, decision: text } }); if (res.ok) window.location.reload(); } })),
+      h(SectionBlock, { title: "Tasks", body: sections.Tasks, children: h(TaskList, { body: sections.Tasks, onTaskAction: async (taskId, action) => { const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/tasks/${taskId}/${action}`, { method: "POST", body: { path: detail.path } }); if (res.ok) window.location.reload(); } }), onAdd: async () => { const text = prompt("Task title:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/tasks`, { method: "POST", body: { path: detail.path, title: text } }); if (res.ok) window.location.reload(); } }),
+      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries, onAdd: async () => { const text = prompt("Discovery:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/discoveries`, { method: "POST", body: { path: detail.path, text } }); if (res.ok) window.location.reload(); } }),
       h("details", { className: "rounded-lg border border-border bg-background/40" },
         h("summary", { className: "cursor-pointer p-3 text-sm font-medium" }, "Raw project.md"),
-        h("pre", { className: "max-h-[32rem] overflow-auto border-t border-border p-3 font-mono text-xs leading-relaxed" }, detail.raw || "")));
+        h("pre", { className: "max-h-[32rem] overflow-auto border-t border-border p-3 font-mono text-xs leading-relaxed" }, detail.raw || "")),
+      h("details", { className: "rounded-lg border border-border bg-background/40" },
+        h("summary", { className: "cursor-pointer p-3 text-sm font-medium" }, "Diff preview / Queue"),
+        h("div", { className: "border-t border-border p-3 flex flex-col gap-3" },
+          h("textarea", { className: "w-full rounded border border-border bg-muted/40 p-2 font-mono text-xs", rows: 6, placeholder: "Paste proposed project.md content...", onChange: async (e) => {
+            const proposed = e.target.value;
+            if (!proposed) return;
+            const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/diff`, { method: "POST", body: { path: detail.path, proposed } });
+            const el = document.getElementById("diff-output");
+            if (el) el.textContent = res.ok ? res.diff : res.error || "Error";
+          } }),
+          h("pre", { id: "diff-output", className: "max-h-64 overflow-auto rounded bg-muted/40 p-2 font-mono text-xs" }, "Diff will appear here..."),
+          h("div", { className: "flex gap-2" },
+            h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: async () => {
+              const proposed = document.querySelector("textarea")?.value;
+              if (!proposed) return;
+              const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/queue`, { method: "POST", body: { path: detail.path, proposed } });
+              alert(res.ok ? "Queued for approval" : (res.error || "Queue failed"));
+            } }, "Queue for approval"),
+            h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: async () => {
+              const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/queue?path=${encodeURIComponent(detail.path)}`);
+              const list = document.getElementById("queue-list");
+              if (list) list.innerHTML = (res.pending || []).map((u) => `<div class="border-b border-border py-1"><code>${u.id}</code> <pre class="text-xs">${u.diff}</pre><button onclick="fetch('${API_BASE}/projects/${detail.id}/queue/${u.id}/approve',{method:'POST'}).then(()=>location.reload())">Approve</button> <button onclick="fetch('${API_BASE}/projects/${detail.id}/queue/${u.id}/reject',{method:'POST'}).then(()=>location.reload())">Reject</button></div>`).join("");
+            } }, "Show pending"),
+          ),
+          h("div", { id: "queue-list", className: "text-xs" }))));
   }
 
-  function LaunchPanel({ hasSelection }) {
+  function LaunchPanel({ detail, onLaunch }) {
+    const [task, setTask] = useState("");
+    const [role, setRole] = useState("");
+    const [roles, setRoles] = useState([]);
+    useEffect(() => {
+      fetchJSON(`${API_BASE}/roster`).then((res) => { if (res.ok && res.roster) setRoles(res.roster); });
+    }, []);
+    if (!detail) return h(Card, null,
+      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
+      h(CardContent, { className: "pt-0 text-sm" }, h("p", { className: "text-muted-foreground" }, "Select a project to launch an agent run.")));
     return h(Card, null,
       h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
-      h(CardContent, { className: "pt-0 text-sm" },
-        h("p", { className: "mb-3 text-muted-foreground" },
-          "Launch controls are intentionally disabled in this slice. The page is now a project browser only."),
-        h(Button, { disabled: true, className: "w-full" }, hasSelection ? "Launch coming next" : "Select a project first")));
+      h(CardContent, { className: "pt-0 text-sm flex flex-col gap-2" },
+        h("input", { className: "rounded border border-border bg-background px-2 py-1 text-xs", placeholder: "Task description...", value: task, onChange: (e) => setTask(e.target.value) }),
+        h("select", { className: "rounded border border-border bg-background px-2 py-1 text-xs", value: role, onChange: (e) => setRole(e.target.value) },
+          h("option", { value: "" }, "Default role"),
+          roles.map((r) => h("option", { key: r.id, value: r.id }, r.name))),
+        h(Button, { className: "w-full", onClick: () => onLaunch(task, role) }, "Launch run")));
+  }
+
+  function RootManager({ roots, onChange }) {
+    const [input, setInput] = useState("");
+    return h("div", { className: "flex flex-col gap-2" },
+      h("div", { className: "flex flex-col gap-2" },
+        roots.map((root) =>
+          h("div", { key: root, className: "flex items-center justify-between gap-2" },
+            h("code", { className: "rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground" }, shortPath(root)),
+            h(Button, {
+              variant: "ghost",
+              className: "h-6 px-2 text-xs",
+              onClick: () => onChange(roots.filter((r) => r !== root)),
+            }, "Remove")))),
+      h("div", { className: "flex gap-2" },
+        h("input", {
+          value: input,
+          onChange: (e) => setInput(e.target.value),
+          placeholder: "Add root path",
+          className: "flex-1 rounded border border-border bg-background px-2 py-1 text-xs",
+          onKeyDown: (e) => { if (e.key === "Enter") { e.preventDefault(); onChange([...roots, input]); setInput(""); } },
+        }),
+        h(Button, {
+          className: "h-7 px-2 text-xs",
+          onClick: () => { onChange([...roots, input]); setInput(""); },
+        }, "Add")));
   }
 
   class ErrorBoundary extends React.Component {
@@ -233,6 +353,17 @@
         .finally(() => setDetailLoading(false));
     }, [selectedPath]);
 
+    // Keyboard shortcuts
+    useEffect(() => {
+      function onKey(e) {
+        if (e.key === "r" && e.ctrlKey) { e.preventDefault(); loadProjects(); }
+        if (e.key === "n" && e.ctrlKey) { e.preventDefault(); const root = prompt("Project root path:"); if (root) { setSelectedPath(root); } }
+        if (e.key === "Escape") { setSelectedPath(null); }
+      }
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, []);
+
     return h("div", { className: "flex flex-col gap-4 p-4" },
       h("div", { className: "flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between" },
         h("div", null,
@@ -258,19 +389,54 @@
           h(CardContent, { className: "pt-0" }, h(ProjectList, { projects, selectedPath, onSelect: setSelectedPath, loading }))),
         h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading })),
         h("div", { className: "flex flex-col gap-4" },
-          h(LaunchPanel, { hasSelection: Boolean(selectedPath) }),
+          h(LaunchPanel, { detail, onLaunch: async (task, role) => {
+            if (!detail) return;
+            const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/runs`, { method: "POST", body: { path: detail.path, task, role_id: role } });
+            if (res.ok) { alert(`Run ${res.run_id} started`); } else { alert(res.error || "Launch failed"); }
+          } }),
           h(Card, null,
             h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Roots")),
             h(CardContent, { className: "pt-0" },
-              h("div", { className: "flex flex-col gap-2" },
-                (health && health.roots || []).map((root) => h("code", {
-                  key: root,
-                  className: "rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground",
-                }, shortPath(root)))))))));
+              h(RootManager, {
+                roots: (health && health.roots) || [],
+                onChange: async (nextRoots) => {
+                  try {
+                    await fetchJSON(`${API}/config`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ project_roots: nextRoots }),
+                    });
+                    loadProjects();
+                  } catch (err) {
+                    setError(err.message || String(err));
+                  }
+                },
+              }))))));
+  }
+
+  function OnboardingWalkthrough() {
+    const [step, setStep] = useState(0);
+    const steps = [
+      { title: "Welcome", body: "This is the ProjectsMD dashboard. Browse your project.md files and manage projects." },
+      { title: "Projects", body: "Select a project from the left sidebar to see its details." },
+      { title: "Mutations", body: "Use the + Add buttons to add tasks, decisions, and discoveries. Click task buttons to mark done, block, or unblock." },
+      { title: "Orchestrator", body: "Enter a task and pick a role, then click Launch run to start an agent." },
+      { title: "Diff / Queue", body: "Paste proposed project.md content in the Diff preview area to see changes. Queue for approval to stage mutations." },
+      { title: "Keyboard shortcuts", body: "Ctrl+R = rescan, Ctrl+N = select project by path, Escape = clear selection." },
+    ];
+    if (step >= steps.length) return null;
+    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50" },
+      h("div", { className: "max-w-sm rounded-lg border border-border bg-background p-4 shadow-lg" },
+        h("h3", { className: "text-sm font-semibold" }, steps[step].title),
+        h("p", { className: "mt-1 text-xs text-muted-foreground" }, steps[step].body),
+        h("div", { className: "mt-3 flex justify-end gap-2" },
+          h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: () => setStep(step + 1) }, step < steps.length - 1 ? "Next" : "Done"),
+          step > 0 ? h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: () => setStep(step - 1) }, "Back") : null,
+          h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: () => setStep(steps.length) }, "Skip"))));
   }
 
   function ProjectsPage() {
-    return h(ErrorBoundary, null, h(ProjectsPageInner));
+    return h(ErrorBoundary, null, h(ProjectsPageInner), h(OnboardingWalkthrough));
   }
 
   window.__HERMES_PLUGINS__.register("projectsmd", ProjectsPage);

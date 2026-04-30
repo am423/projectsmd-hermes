@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .models import CurrentState, ProjectDetail, ProjectSummary, TaskCounts
+
 TASK_RE = re.compile(r"^\s*- \[(?P<mark>[ xX])\]\s+(?P<body>.*)$")
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 CURRENT_STATE_RE = re.compile(r"^\*\*(?P<key>[^*]+):\*\*\s*(?P<value>.*)$", re.MULTILINE)
@@ -76,28 +78,29 @@ def summarize_text(
     text: str,
     frontmatter: dict[str, Any],
     sections: dict[str, str],
-    current_state: dict[str, str],
+    current_state: CurrentState,
 ) -> dict[str, Any]:
     stat = path.stat()
     tasks = count_tasks(sections.get("Tasks", text))
-    phase = first_nonempty(current_state.get("phase"), frontmatter.get("status"), "unknown")
-    return {
-        "id": project_id(path),
-        "name": first_nonempty(frontmatter.get("project"), path.parent.name),
-        "path": str(path),
-        "root": str(path.parent),
-        "status": first_nonempty(frontmatter.get("status"), phase),
-        "phase": phase,
-        "owner": frontmatter.get("owner", ""),
-        "agent": frontmatter.get("agent", ""),
-        "tags": parse_tags(frontmatter.get("tags", [])),
-        "created": frontmatter.get("created", ""),
-        "updated": frontmatter.get("updated", ""),
-        "mtime": stat.st_mtime,
-        "tasks": tasks,
-        "next_action": current_state.get("next action", ""),
-        "blockers": current_state.get("blockers", ""),
-    }
+    phase = first_nonempty(current_state.phase, frontmatter.get("status"), "unknown")
+    summary = ProjectSummary(
+        id=project_id(path),
+        name=first_nonempty(frontmatter.get("project"), path.parent.name),
+        path=str(path),
+        root=str(path.parent),
+        status=first_nonempty(frontmatter.get("status"), phase),
+        phase=phase,
+        owner=frontmatter.get("owner", ""),
+        agent=frontmatter.get("agent", ""),
+        tags=parse_tags(frontmatter.get("tags", [])),
+        created=frontmatter.get("created", ""),
+        updated=frontmatter.get("updated", ""),
+        mtime=stat.st_mtime,
+        tasks=tasks,
+        next_action=current_state.next_action,
+        blockers=current_state.blockers,
+    )
+    return summary.to_dict()
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
@@ -135,14 +138,27 @@ def parse_sections(body: str) -> dict[str, str]:
     return sections
 
 
-def parse_current_state(section: str) -> dict[str, str]:
-    state: dict[str, str] = {}
+def parse_current_state(section: str) -> CurrentState:
+    state = CurrentState()
     for match in CURRENT_STATE_RE.finditer(section):
-        state[match.group("key").strip().lower()] = match.group("value").strip()
+        key = match.group("key").strip().lower()
+        value = match.group("value").strip()
+        if key == "phase":
+            state.phase = value
+        elif key == "next action":
+            state.next_action = value
+        elif key == "blockers":
+            state.blockers = value
+        elif key == "in progress":
+            state.in_progress = value
+        elif key == "last completed":
+            state.last_completed = value
+        elif key == "notes":
+            state.notes = value
     return state
 
 
-def count_tasks(text: str) -> dict[str, int]:
+def count_tasks(text: str) -> TaskCounts:
     done = pending = blocked = 0
     for line in text.splitlines():
         match = TASK_RE.match(line)
@@ -155,7 +171,7 @@ def count_tasks(text: str) -> dict[str, int]:
             pending += 1
         if "blocked" in body or "blocker" in body:
             blocked += 1
-    return {"done": done, "pending": pending, "blocked": blocked, "total": done + pending}
+    return TaskCounts(done=done, pending=pending, blocked=blocked, total=done + pending)
 
 
 def project_id(path: Path) -> str:
