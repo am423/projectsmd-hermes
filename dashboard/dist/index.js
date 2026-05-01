@@ -451,13 +451,16 @@
     return h("div", { className: "flex flex-col gap-4 p-4" },
       h("div", { className: "flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between" },
         h("div", null,
-          h("h1", { className: "text-2xl font-semibold tracking-tight" }, "Projects"),
+          h("div", { className: "flex items-center gap-2" },
+            h("span", { className: "text-xl" }, "\u26A1"),
+            h("h1", { className: "text-2xl font-semibold tracking-tight" }, "Hermes Projects")),
           h("p", { className: "text-sm text-muted-foreground" },
-            "Browse ProjectsMD project.md files and see the current resume point.")),
+            "Browse project.md files and orchestrate agents across your work.")),
         h("div", { className: "flex items-center gap-2" },
           health && health.projectsmd ? h(Badge, { variant: health.projectsmd.available ? "outline" : "destructive" },
             health.projectsmd.available ? "projectsmd available" : "projectsmd missing") : null,
-          h(Button, { onClick: loadProjects, disabled: loading }, loading ? "Scanning..." : "Rescan"))),
+          h(Button, { onClick: loadProjects, disabled: loading }, loading ? "Scanning..." : "Rescan"),
+          h("a", { href: "https://hermes-agent.nousresearch.com/docs", target: "_blank", className: "text-xs text-muted-foreground hover:text-foreground underline" }, "Docs"))),
 
       error ? h("div", { className: "rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" }, error) : null,
 
@@ -513,7 +516,7 @@
       { title: "Keyboard shortcuts", body: "Ctrl+R = rescan, Ctrl+N = select project by path, Escape = clear selection." },
     ];
     if (step >= steps.length) return null;
-    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50" },
+    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" },
       h("div", { className: "max-w-sm rounded-lg border border-border bg-background p-4 shadow-lg" },
         h("h3", { className: "text-sm font-semibold" }, steps[step].title),
         h("p", { className: "mt-1 text-xs text-muted-foreground" }, steps[step].body),
