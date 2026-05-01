@@ -1,6 +1,7 @@
 """Tests for project creation API."""
 from __future__ import annotations
 
+import pytest
 import tempfile
 from pathlib import Path
 
@@ -8,11 +9,17 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from projectsmd_dashboard.api import router
+from projectsmd_dashboard.projectsmd_cli import PROJECTSMD_AVAILABLE
 
 from fastapi import FastAPI
 
 app = FastAPI()
 app.include_router(router, prefix="/api/plugins/projectsmd")
+
+pytestmark = pytest.mark.skipif(
+    not PROJECTSMD_AVAILABLE,
+    reason="projectsmd binary not available",
+)
 client = TestClient(app)
 
 

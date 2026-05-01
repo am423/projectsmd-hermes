@@ -24,11 +24,11 @@ ALLOWED_COMMANDS = {
 }
 
 
-def _projectsmd_path() -> str:
+def _projectsmd_path() -> str | None:
     path = shutil.which("projectsmd")
-    if not path:
-        raise RuntimeError("projectsmd binary not found in PATH")
     return path
+
+PROJECTSMD_AVAILABLE = shutil.which("projectsmd") is not None
 
 
 def _run(cmd: list[str], cwd: str | None = None) -> dict[str, Any]:
@@ -127,6 +127,8 @@ def archive(project_md: str | Path, summary: str | None = None) -> dict[str, Any
 
 
 def init(root: str | Path, **kwargs) -> dict[str, Any]:
+    if not PROJECTSMD_AVAILABLE:
+        return {"ok": False, "returncode": -1, "stdout": "", "stderr": "projectsmd not available"}
     root_path = Path(root).expanduser().resolve()
     project_md = root_path / "project.md"
     if project_md.exists():

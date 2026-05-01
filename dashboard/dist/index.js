@@ -27,7 +27,7 @@
     };
   }
 
-  const API = "/api/plugins/projectsmd";
+  const API = SDK.pluginAPI || "/api/plugins/projectsmd";
 
   function pct(done, total) {
     if (!total) return 0;
@@ -61,6 +61,24 @@
 
   function shortPath(path) {
     return String(path || "").replace(/^\/home\/[^/]+/, "~");
+  }
+
+  function AddForm(props) {
+    var fields = props.fields, onSave = props.onSave, onCancel = props.onCancel;
+    var _a = useState({}), data = _a[0], setData = _a[1];
+    var _b = useState(false), saving = _b[0], setSaving = _b[1];
+    return h("div", { className: "flex flex-col gap-3" },
+      fields.map(function (f) {
+        var value = data[f.key] || "";
+        if (f.type === "select") {
+          return h("select", { key: f.key, className: "rounded border border-border bg-background px-2 py-1 text-sm", value: value, onChange: function (e) { setData(Object.assign({}, data, (_c = {}, _c[f.key] = e.target.value, _c))); var _c; } },
+            f.options.map(function (o) { return h("option", { key: o, value: o }, o); }));
+        }
+        return h("input", { key: f.key, className: "rounded border border-border bg-background px-2 py-1 text-sm", placeholder: f.placeholder || f.label, value: value, onChange: function (e) { setData(Object.assign({}, data, (_c = {}, _c[f.key] = e.target.value, _c))); var _c; }, autoFocus: true });
+      }),
+      h("div", { className: "flex justify-end gap-2" },
+        h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: onCancel }, "Cancel"),
+        h("button", { className: "text-xs rounded bg-primary text-primary-foreground px-2 py-1 hover:bg-primary/90", disabled: saving, onClick: async function () { setSaving(true); try { await onSave(data); } finally { setSaving(false); } } }, saving ? "Saving..." : "Save")));
   }
 
   function EmptyState(props) {
@@ -229,6 +247,9 @@
 
     const [queueItems, setQueueItems] = useState([]);
     const [queueLoading, setQueueLoading] = useState(false);
+    const [showAddTask, setShowAddTask] = useState(false);
+    const [showAddDecision, setShowAddDecision] = useState(false);
+    const [showAddDiscovery, setShowAddDiscovery] = useState(false);
 
     async function loadQueue() {
       setQueueLoading(true);
@@ -246,9 +267,9 @@
       h(CurrentState, { detail }),
       h("div", { className: "grid gap-4 xl:grid-cols-2" },
         h(SectionBlock, { title: "What This Is", body: sections["What This Is"] }),
-        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"], children: h(DecisionTable, { body: sections["Key Decisions"] }), onAdd: async () => { const text = prompt("Decision:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/decisions`, { method: "POST", body: { path: detail.path, decision: text } }); if (res.ok && onRefresh) onRefresh(); } })),
-      h(SectionBlock, { title: "Tasks", body: sections.Tasks, children: h(TaskList, { body: sections.Tasks, onTaskAction: async (taskId, action) => { const res = await fetchJSON(`${API}/projects/${detail.id}/tasks/${taskId}/${action}`, { method: "POST", body: { path: detail.path } }); if (res.ok && onRefresh) onRefresh(); } }), onAdd: async () => { const text = prompt("Task title:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/tasks`, { method: "POST", body: { path: detail.path, title: text } }); if (res.ok && onRefresh) onRefresh(); } }),
-      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries, onAdd: async () => { const text = prompt("Discovery:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/discoveries`, { method: "POST", body: { path: detail.path, text } }); if (res.ok && onRefresh) onRefresh(); } }),
+        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"], children: h(DecisionTable, { body: sections["Key Decisions"] }), onAdd: function () { setShowAddDecision(true); } })),
+      h(SectionBlock, { title: "Tasks", body: sections.Tasks, children: h(TaskList, { body: sections.Tasks, onTaskAction: async (taskId, action) => { const res = await fetchJSON(`${API}/projects/${detail.id}/tasks/${taskId}/${action}`, { method: "POST", body: { path: detail.path } }); if (res.ok && onRefresh) onRefresh(); } }), onAdd: function () { setShowAddTask(true); } }),
+      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries, onAdd: function () { setShowAddDiscovery(true); } }),
       h("details", { className: "rounded-lg border border-border bg-background/40" },
         h("summary", { className: "cursor-pointer p-3 text-sm font-medium" }, "Raw project.md"),
         h("pre", { className: "max-h-[32rem] overflow-auto border-t border-border p-3 font-mono text-xs leading-relaxed" }, detail.raw || "")),
@@ -287,7 +308,19 @@
                     await fetchJSON(`${API}/projects/${detail.id}/queue/${u.id}/reject`, { method: "POST" });
                     loadQueue();
                   } }, "Reject")))
-            })))));
+            }))))),
+      showAddTask ? h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm", onClick: function () { setShowAddTask(false); } },
+        h("div", { className: "max-w-md rounded-lg border border-border bg-background p-4 shadow-xl", onClick: function (e) { e.stopPropagation(); } },
+          h("h3", { className: "text-sm font-semibold mb-3" }, "Add Task"),
+          h(AddForm, { fields: [{ key: "title", label: "Task title", placeholder: "Implement feature X" }, { key: "phase", label: "Phase", type: "select", options: ["DEFINE","DESIGN","BUILD","VERIFY","SHIP"] }], onSave: async function (data) { await fetchJSON(API + "/projects/" + detail.id + "/tasks", { method: "POST", body: { path: detail.path, title: data.title } }); setShowAddTask(false); if (onRefresh) onRefresh(); }, onCancel: function () { setShowAddTask(false); } }))) : null,
+      showAddDecision ? h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm", onClick: function () { setShowAddDecision(false); } },
+        h("div", { className: "max-w-md rounded-lg border border-border bg-background p-4 shadow-xl", onClick: function (e) { e.stopPropagation(); } },
+          h("h3", { className: "text-sm font-semibold mb-3" }, "Add Decision"),
+          h(AddForm, { fields: [{ key: "decision", label: "Decision", placeholder: "Use Redis for caching" }, { key: "rationale", label: "Rationale", placeholder: "Built-in TTL, fast reads" }], onSave: async function (data) { await fetchJSON(API + "/projects/" + detail.id + "/decisions", { method: "POST", body: { path: detail.path, decision: data.decision } }); setShowAddDecision(false); if (onRefresh) onRefresh(); }, onCancel: function () { setShowAddDecision(false); } }))) : null,
+      showAddDiscovery ? h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm", onClick: function () { setShowAddDiscovery(false); } },
+        h("div", { className: "max-w-md rounded-lg border border-border bg-background p-4 shadow-xl", onClick: function (e) { e.stopPropagation(); } },
+          h("h3", { className: "text-sm font-semibold mb-3" }, "Add Discovery"),
+          h(AddForm, { fields: [{ key: "text", label: "Discovery", placeholder: "The auth API returns 403 not 401" }], onSave: async function (data) { await fetchJSON(API + "/projects/" + detail.id + "/discoveries", { method: "POST", body: { path: detail.path, text: data.text } }); setShowAddDiscovery(false); if (onRefresh) onRefresh(); }, onCancel: function () { setShowAddDiscovery(false); } }))) : null;
   }
 
   function LaunchPanel({ detail, onLaunch }) {
