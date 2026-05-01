@@ -318,16 +318,29 @@
   }
 
   class ErrorBoundary extends React.Component {
-    constructor(props) { super(props); this.state = { error: null }; }
+    constructor(props) { super(props); this.state = { error: null, copied: false }; }
     static getDerivedStateFromError(error) { return { error }; }
     componentDidCatch(error, info) { console.error("Projects plugin crashed:", error, info); }
     render() {
       if (this.state.error) {
-        return h(Card, null,
+        var msg = String(this.state.error?.message || this.state.error);
+        var stack = this.state.error?.stack || "";
+        var self = this;
+        function copyError() {
+          navigator.clipboard.writeText(msg + "\n\n" + stack).then(function () {
+            self.setState({ copied: true });
+            setTimeout(function () { self.setState({ copied: false }); }, 2000);
+          });
+        }
+        return h(Card, { className: "border-destructive/50" },
           h(CardContent, { className: "p-6 text-sm" },
             h("div", { className: "mb-1 font-semibold text-destructive" }, "Projects tab crashed"),
-            h("div", { className: "mb-3 text-xs text-muted-foreground" }, String(this.state.error && this.state.error.message || this.state.error)),
-            h(Button, { onClick: () => this.setState({ error: null }) }, "Retry")));
+            h("div", { className: "mb-3 text-xs text-muted-foreground max-h-20 overflow-auto" }, msg),
+            h("div", { className: "flex gap-2" },
+              h(Button, { onClick: function () { self.setState({ error: null }); } }, "Retry"),
+              h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: copyError },
+                self.state.copied ? "Copied!" : "Copy error"),
+              h("a", { href: "https://hermes-agent.nousresearch.com/docs", target: "_blank", className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent underline" }, "Hermes docs"))));
       }
       return this.props.children;
     }
