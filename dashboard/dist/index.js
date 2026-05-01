@@ -83,6 +83,7 @@
     return h("button", {
       type: "button",
       onClick: () => onSelect(project.path),
+      "aria-label": "Project: " + (project.name || project.root),
       className: cn(
         "w-full rounded-lg border p-3 text-left transition-colors",
         "hover:border-primary/60 hover:bg-muted/50 cursor-pointer",
@@ -535,7 +536,7 @@
           h(Button, { onClick: loadProjects, disabled: loading }, loading ? "Scanning..." : "Rescan"),
           h("a", { href: "https://hermes-agent.nousresearch.com/docs", target: "_blank", className: "text-xs text-muted-foreground hover:text-foreground underline" }, "Docs"))),
 
-      error ? h("div", { className: "rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" }, error) : null,
+      error ? h("div", { role: "alert", className: "rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" }, error) : null,
 
       h("div", { className: "grid gap-3 sm:grid-cols-2 xl:grid-cols-4" },
         h(StatCard, { label: "Projects", value: projects.length, detail: health && health.roots ? `${health.roots.length} roots scanned` : "" }),
@@ -543,7 +544,7 @@
         h(StatCard, { label: "Blocked", value: totals.blocked, detail: totals.blocked ? "Needs attention" : "No blockers found" }),
         h(StatCard, { label: "Selected", value: selectedProject ? selectedProject.phase || "unknown" : "—", detail: selectedProject ? shortPath(selectedProject.root) : "No project selected" })),
 
-      h("div", { className: "grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)_18rem]" },
+      h("div", { className: "grid gap-4 lg:grid-cols-1 xl:grid-cols-[22rem_minmax(0,1fr)_18rem]" },
         h(Card, { className: "xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto" },
           h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-base" }, "Project files")),
           h(CardContent, { className: "pt-0" }, h(ProjectList, { projects, selectedPath, onSelect: setSelectedPath, loading }))),
@@ -604,5 +605,10 @@
     return h(ErrorBoundary, null, h(ProjectsPageInner), h(OnboardingWalkthrough));
   }
 
-  window.__HERMES_PLUGINS__.register("projectsmd", ProjectsPage);
+  window.__HERMES_PLUGINS__.register("projectsmd", ProjectsPage, {
+    priority: 50,
+    min_version: "1.0.0",
+    description: "ProjectsMD-powered project browsing and agent orchestration",
+    category: "productivity",
+  });
 })();
