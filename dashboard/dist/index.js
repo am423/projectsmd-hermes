@@ -12,10 +12,20 @@
   } = SDK.components;
   const { useEffect, useMemo, useState } = SDK.hooks;
   const { cn } = SDK.utils;
-  const fetchJSON = SDK.fetchJSON || ((url) => fetch(url).then((r) => {
+  const fetchJSON = SDK.fetchJSON || ((url, opts) => fetch(url, opts).then((r) => {
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return r.json();
   }));
+
+  function debounce(fn, ms) {
+    if (ms === void 0) ms = 300;
+    var timer;
+    return function () {
+      var self = this, args = arguments;
+      clearTimeout(timer);
+      timer = setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
 
   const API = "/api/plugins/projectsmd";
 
@@ -198,6 +208,19 @@
     if (loading) return h(EmptyState, { title: "Loading project" }, "Reading project.md...");
     if (!detail) return h(EmptyState, { title: "Pick a project" }, "Select a project from the list to inspect its project.md state.");
 
+    const [queueItems, setQueueItems] = useState([]);
+    const [queueLoading, setQueueLoading] = useState(false);
+
+    async function loadQueue() {
+      setQueueLoading(true);
+      try {
+        const res = await fetchJSON(`${API}/projects/detail?path=${encodeURIComponent(detail.path)}`);
+        // fetch queue for this project
+        const qRes = await fetchJSON(`${API}/projects/${res.id}/queue?path=${encodeURIComponent(detail.path)}`);
+        setQueueItems(qRes.pending || []);
+      } catch (_) {} finally { setQueueLoading(false); }
+    }
+
     const sections = detail.sections || {};
     return h("div", { className: "flex flex-col gap-4" },
       h(DetailHeader, { detail }),
@@ -225,16 +248,27 @@
             h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: async () => {
               const proposed = document.querySelector("textarea")?.value;
               if (!proposed) return;
-              const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/queue`, { method: "POST", body: { path: detail.path, proposed } });
+              const res = await fetchJSON(`${API}/projects/${detail.id}/queue`, { method: "POST", body: { path: detail.path, proposed } });
               alert(res.ok ? "Queued for approval" : (res.error || "Queue failed"));
+              loadQueue();
             } }, "Queue for approval"),
-            h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: async () => {
-              const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/queue?path=${encodeURIComponent(detail.path)}`);
-              const list = document.getElementById("queue-list");
-              if (list) list.innerHTML = (res.pending || []).map((u) => `<div class="border-b border-border py-1"><code>${u.id}</code> <pre class="text-xs">${u.diff}</pre><button onclick="fetch('${API_BASE}/projects/${detail.id}/queue/${u.id}/approve',{method:'POST'}).then(()=>location.reload())">Approve</button> <button onclick="fetch('${API_BASE}/projects/${detail.id}/queue/${u.id}/reject',{method:'POST'}).then(()=>location.reload())">Reject</button></div>`).join("");
-            } }, "Show pending"),
+            h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: loadQueue }, queueLoading ? "Loading..." : "Show pending"),
           ),
-          h("div", { id: "queue-list", className: "text-xs" }))));
+          h("div", { id: "queue-list", className: "text-xs" },
+            queueItems.map(function (u) {
+              return h("div", { key: u.id, className: "border-b border-border py-1 flex flex-col gap-1" },
+                h("code", { className: "text-xs" }, u.id),
+                h("pre", { className: "text-xs max-h-24 overflow-auto" }, u.diff),
+                h("div", { className: "flex gap-1" },
+                  h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: async function () {
+                    await fetchJSON(`${API}/projects/${detail.id}/queue/${u.id}/approve`, { method: "POST" });
+                    loadQueue();
+                  } }, "Approve"),
+                  h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: async function () {
+                    await fetchJSON(`${API}/projects/${detail.id}/queue/${u.id}/reject`, { method: "POST" });
+                    loadQueue();
+                  } }, "Reject")))
+            })))));
   }
 
   function LaunchPanel({ detail, onLaunch }) {
