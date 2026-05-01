@@ -40,10 +40,23 @@
   }
 
   function statusVariant(value) {
-    const normalized = String(value || "").toLowerCase();
+    var normalized = String(value || "").toLowerCase();
     if (normalized === "blocked" || normalized === "paused") return "destructive";
     if (normalized === "ship" || normalized === "archived") return "secondary";
     return "outline";
+  }
+
+  function phaseVariant(phase) {
+    var map = {
+      define:  "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
+      design:  "bg-amber-500/10 text-amber-400 border-amber-500/30",
+      build:   "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+      verify:  "bg-sky-500/10 text-sky-400 border-sky-500/30",
+      ship:    "bg-violet-500/10 text-violet-400 border-violet-500/30",
+    };
+    var v = map[(phase || "").toLowerCase()];
+    if (!v) return cn("bg-muted/50 text-muted-foreground border-border");
+    return cn(v, "rounded-full px-2 py-0.5 text-xs font-medium border");
   }
 
   function shortPath(path) {
@@ -80,13 +93,14 @@
         h("div", { className: "min-w-0" },
           h("div", { className: "truncate font-medium" }, project.name || project.root),
           h("div", { className: "mt-1 truncate text-xs text-muted-foreground" }, shortPath(project.root))),
-        h(Badge, { variant: statusVariant(project.phase), className: "shrink-0" }, project.phase || "unknown")),
+        h("span", { className: phaseVariant(project.phase) }, project.phase || "unknown")),
       h("div", { className: "mt-3 flex items-center justify-between text-xs text-muted-foreground" },
         h("span", null, taskLabel(project)),
         h("span", null, `${percent}%`)),
       h("div", { className: "mt-2 h-1.5 overflow-hidden rounded-full bg-muted" },
         h("div", { className: "h-full rounded-full bg-primary", style: { width: `${percent}%` } })),
-      project.next_action ? h("div", { className: "mt-3 line-clamp-2 text-xs text-muted-foreground" }, project.next_action) : null);
+      project.next_action ? h("div", { className: "mt-3 line-clamp-2 text-xs text-muted-foreground" }, project.next_action) : null,
+      tasks.done === tasks.total && tasks.total > 0 ? h("div", { className: "mt-2 flex items-center gap-1 text-xs text-emerald-400" }, "\u2713", " Complete") : null);
   }
 
   function ProjectList({ projects, selectedPath, onSelect, loading }) {
@@ -137,8 +151,11 @@
     }
     return h("div", { className: "flex flex-col gap-1" },
       tasks.map((task, i) =>
-        h("div", { key: i, className: "flex items-start gap-2 rounded-md border border-border bg-background/40 px-3 py-2 text-sm" },
-          h("span", { className: task.done ? "text-primary" : "text-muted-foreground" }, task.done ? "✓" : "○"),
+        h("div", { key: i, className: cn(
+          "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+          task.done ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-background/40"
+        ) },
+          h("span", { className: task.done ? "text-emerald-400" : "text-amber-400" }, task.done ? "\u2713" : "\u25CB"),
           h("span", { className: task.done ? "line-through text-muted-foreground" : "text-foreground" }, task.body),
           task.phase ? h("span", { className: "ml-auto text-xs text-muted-foreground" }, task.phase) : null,
           h("div", { className: "ml-auto flex gap-1" },
@@ -181,7 +198,7 @@
           h("div", { className: "min-w-0" },
             h("div", { className: "flex flex-wrap items-center gap-2" },
               h("h2", { className: "truncate text-xl font-semibold" }, detail.name || "Untitled project"),
-              h(Badge, { variant: statusVariant(detail.phase) }, detail.phase || "unknown"),
+              h("span", { className: phaseVariant(detail.phase) }, detail.phase || "unknown"),
               detail.owner ? h(Badge, { variant: "outline" }, detail.owner) : null),
             h("div", { className: "mt-2 truncate font-mono text-xs text-muted-foreground" }, shortPath(detail.path))),
           h("div", { className: "w-full lg:w-48" },
@@ -189,7 +206,8 @@
               h("span", null, taskLabel(detail)),
               h("span", null, `${percent}%`)),
             h("div", { className: "mt-2 h-2 overflow-hidden rounded-full bg-muted" },
-              h("div", { className: "h-full rounded-full bg-primary", style: { width: `${percent}%` } }))))));
+              h("div", { className: "h-full rounded-full bg-primary", style: { width: `${percent}%` } })),
+          tasks.done === tasks.total && tasks.total > 0 ? h("span", { className: "rounded-full px-2 py-0.5 text-xs font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/30" }, "\u2713 Complete") : null))));
   }
 
   function CurrentState({ detail }) {
