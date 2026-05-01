@@ -309,6 +309,61 @@
         h(Button, { className: "w-full", onClick: () => onLaunch(task, role) }, "Launch run")));
   }
 
+  function RunPanel({ detail }) {
+    var _a = useState([]), runs = _a[0], setRuns = _a[1];
+    useEffect(function () {
+      if (!detail) return;
+      var timer;
+      function poll() {
+        fetchJSON(API + "/projects/" + detail.id + "/runs").then(function (res) {
+          if (res && res.runs) setRuns(res.runs.slice(0, 5));
+        }).catch(function () {});
+        timer = setTimeout(poll, 3000);
+      }
+      poll();
+      return function () { clearTimeout(timer); };
+    }, [detail && detail.id]);
+    var activeRuns = runs.filter(function (r) { return r.status === "running"; });
+    var completedRuns = runs.filter(function (r) { return r.status !== "running"; });
+    function subCount(r) {
+      var count = 0;
+      try {
+        var events = r.events || [];
+        for (var i = 0; i < events.length; i++) {
+          try {
+            var p = JSON.parse(events[i].line);
+            if (p.type === "subagent") count++;
+          } catch (_) {}
+        }
+      } catch (_) {}
+      return count;
+    }
+    return h(Card, null,
+      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator Runs")),
+      h(CardContent, { className: "pt-0 text-xs flex flex-col gap-2" },
+        activeRuns.length === 0 && completedRuns.length === 0
+          ? h("p", { className: "text-muted-foreground" }, "No runs yet. Launch one above.")
+          : null,
+        activeRuns.map(function (r) {
+          var subs = subCount(r);
+          return h("div", { key: r.id, className: "rounded border border-emerald-500/30 bg-emerald-500/5 p-2" },
+            h("div", { className: "flex items-center justify-between" },
+              h("code", { className: "font-mono" }, r.id.slice(0, 8)),
+              h("span", { className: "rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-400" }, "running"),
+              subs > 0 ? h("span", { className: "text-[10px] text-muted-foreground" }, subs + " sub" + (subs > 1 ? "s" : "")) : null),
+            r.prompt ? h("div", { className: "mt-1 truncate text-muted-foreground" }, r.prompt) : null);
+        }),
+        completedRuns.length > 0 ? h("details", { className: "mt-1" },
+          h("summary", { className: "cursor-pointer text-[11px] text-muted-foreground hover:text-foreground" },
+            "Show " + completedRuns.length + " completed run" + (completedRuns.length > 1 ? "s" : "")),
+          h("div", { className: "mt-1 flex flex-col gap-1" },
+            completedRuns.map(function (r) {
+              return h("div", { key: r.id, className: "rounded border border-border bg-muted/20 p-1.5 flex justify-between text-[11px]" },
+                h("code", { className: "font-mono" }, r.id.slice(0, 8)),
+                h("span", { className: "text-muted-foreground" }, r.status));
+            }))) : null));
+  }
+
   function RootManager({ roots, onChange }) {
     const [input, setInput] = useState("");
     return h("div", { className: "flex flex-col gap-2" },
@@ -497,8 +552,9 @@
           h(LaunchPanel, { detail, onLaunch: async (task, role) => {
             if (!detail) return;
             const res = await fetchJSON(`${API}/projects/${detail.id}/runs`, { method: "POST", body: { path: detail.path, task, role_id: role } });
-            if (res.ok) { alert(`Run ${res.run_id} started`); } else { alert(res.error || "Launch failed"); }
+            if (res.ok) { addToast("Run " + res.run_id + " started"); } else { addToast(res.error || "Launch failed", "destructive"); }
           } }),
+          h(RunPanel, { detail: detail }),
           h(Card, null,
             h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Roots")),
             h(CardContent, { className: "pt-0" },
