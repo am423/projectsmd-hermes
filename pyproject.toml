@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-test = [
+dev = [
     "fastapi>=0.100",
     "httpx>=0.24",
     "pytest>=7.0",
