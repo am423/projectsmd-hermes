@@ -204,7 +204,7 @@
           h("div", { className: "mt-1" }, detail.blockers || "None"))));
   }
 
-  function ProjectDetail({ detail, loading }) {
+  function ProjectDetail({ detail, loading, onRefresh }) {
     if (loading) return h(EmptyState, { title: "Loading project" }, "Reading project.md...");
     if (!detail) return h(EmptyState, { title: "Pick a project" }, "Select a project from the list to inspect its project.md state.");
 
@@ -227,9 +227,9 @@
       h(CurrentState, { detail }),
       h("div", { className: "grid gap-4 xl:grid-cols-2" },
         h(SectionBlock, { title: "What This Is", body: sections["What This Is"] }),
-        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"], children: h(DecisionTable, { body: sections["Key Decisions"] }), onAdd: async () => { const text = prompt("Decision:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/decisions`, { method: "POST", body: { path: detail.path, decision: text } }); if (res.ok) window.location.reload(); } })),
-      h(SectionBlock, { title: "Tasks", body: sections.Tasks, children: h(TaskList, { body: sections.Tasks, onTaskAction: async (taskId, action) => { const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/tasks/${taskId}/${action}`, { method: "POST", body: { path: detail.path } }); if (res.ok) window.location.reload(); } }), onAdd: async () => { const text = prompt("Task title:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/tasks`, { method: "POST", body: { path: detail.path, title: text } }); if (res.ok) window.location.reload(); } }),
-      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries, onAdd: async () => { const text = prompt("Discovery:"); if (!text) return; const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/discoveries`, { method: "POST", body: { path: detail.path, text } }); if (res.ok) window.location.reload(); } }),
+        h(SectionBlock, { title: "Key Decisions", body: sections["Key Decisions"], children: h(DecisionTable, { body: sections["Key Decisions"] }), onAdd: async () => { const text = prompt("Decision:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/decisions`, { method: "POST", body: { path: detail.path, decision: text } }); if (res.ok && onRefresh) onRefresh(); } })),
+      h(SectionBlock, { title: "Tasks", body: sections.Tasks, children: h(TaskList, { body: sections.Tasks, onTaskAction: async (taskId, action) => { const res = await fetchJSON(`${API}/projects/${detail.id}/tasks/${taskId}/${action}`, { method: "POST", body: { path: detail.path } }); if (res.ok && onRefresh) onRefresh(); } }), onAdd: async () => { const text = prompt("Task title:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/tasks`, { method: "POST", body: { path: detail.path, title: text } }); if (res.ok && onRefresh) onRefresh(); } }),
+      h(SectionBlock, { title: "Discoveries", body: sections.Discoveries, onAdd: async () => { const text = prompt("Discovery:"); if (!text) return; const res = await fetchJSON(`${API}/projects/${detail.id}/discoveries`, { method: "POST", body: { path: detail.path, text } }); if (res.ok && onRefresh) onRefresh(); } }),
       h("details", { className: "rounded-lg border border-border bg-background/40" },
         h("summary", { className: "cursor-pointer p-3 text-sm font-medium" }, "Raw project.md"),
         h("pre", { className: "max-h-[32rem] overflow-auto border-t border-border p-3 font-mono text-xs leading-relaxed" }, detail.raw || "")),
@@ -239,7 +239,7 @@
           h("textarea", { className: "w-full rounded border border-border bg-muted/40 p-2 font-mono text-xs", rows: 6, placeholder: "Paste proposed project.md content...", onChange: async (e) => {
             const proposed = e.target.value;
             if (!proposed) return;
-            const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/diff`, { method: "POST", body: { path: detail.path, proposed } });
+            const res = await fetchJSON(`${API}/projects/${detail.id}/diff`, { method: "POST", body: { path: detail.path, proposed } });
             const el = document.getElementById("diff-output");
             if (el) el.textContent = res.ok ? res.diff : res.error || "Error";
           } }),
@@ -276,7 +276,7 @@
     const [role, setRole] = useState("");
     const [roles, setRoles] = useState([]);
     useEffect(() => {
-      fetchJSON(`${API_BASE}/roster`).then((res) => { if (res.ok && res.roster) setRoles(res.roster); });
+      fetchJSON(`${API}/roster`).then((res) => { if (res.ok && res.roster) setRoles(res.roster); });
     }, []);
     if (!detail) return h(Card, null,
       h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
@@ -341,6 +341,32 @@
     const [loading, setLoading] = useState(true);
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [toasts, setToasts] = useState([]);
+
+    function addToast(message, variant) {
+      if (variant === void 0) variant = "default";
+      var id = Date.now();
+      setToasts(function (prev) { return prev.concat({ id: id, message: message, variant: variant }); });
+      setTimeout(function () { setToasts(function (prev) { return prev.filter(function (t) { return t.id !== id; }); }); }, 3000);
+    }
+
+    function ToastContainer(_a) {
+      var toasts = _a.toasts;
+      if (!toasts.length) return null;
+      return h("div", { className: "fixed bottom-4 right-4 z-50 flex flex-col gap-2" },
+        toasts.map(function (t) {
+          return h("div", { key: t.id, className: cn(
+            "rounded-lg border px-3 py-2 text-sm shadow-lg",
+            t.variant === "destructive" ? "border-destructive/50 bg-destructive/10 text-destructive" : "border-border bg-background"
+          ) }, t.message);
+        }));
+    }
+
+    function Spinner(_a) {
+      var size = (_a && _a.size) || "sm";
+      var sz = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+      return h("span", { className: "inline-block " + sz + " animate-spin rounded-full border-2 border-current border-t-transparent" });
+    }
 
     const selectedProject = useMemo(
       () => projects.find((project) => project.path === selectedPath),
@@ -354,6 +380,20 @@
       acc.total += tasks.total || 0;
       return acc;
     }, { done: 0, pending: 0, blocked: 0, total: 0 }), [projects]);
+
+    async function loadDetail() {
+      if (!selectedPath) { setDetail(null); return; }
+      setDetailLoading(true);
+      setError(null);
+      try {
+        var data = await fetchJSON(`${API}/projects/detail?path=${encodeURIComponent(selectedPath)}`);
+        setDetail(data);
+      } catch (err) {
+        setError(err.message || String(err));
+      } finally {
+        setDetailLoading(false);
+      }
+    }
 
     async function loadProjects() {
       setLoading(true);
@@ -369,7 +409,12 @@
           return nextProjects.length ? nextProjects[0].path : null;
         });
       } catch (err) {
-        setError(`${err.message || err}. Restart hermes dashboard if you just installed or updated the plugin.`);
+        var msg = err.message || String(err);
+        if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1) {
+          setError("Cannot reach ProjectsMD backend. Restart with: hermes dashboard --no-open");
+        } else {
+          setError(msg + ". Restart hermes dashboard if you just installed or updated the plugin.");
+        }
       } finally {
         setLoading(false);
       }
@@ -377,15 +422,7 @@
 
     useEffect(() => { loadProjects(); }, []);
 
-    useEffect(() => {
-      if (!selectedPath) { setDetail(null); return; }
-      setDetailLoading(true);
-      setError(null);
-      fetchJSON(`${API}/projects/detail?path=${encodeURIComponent(selectedPath)}`)
-        .then(setDetail)
-        .catch((err) => setError(err.message || String(err)))
-        .finally(() => setDetailLoading(false));
-    }, [selectedPath]);
+    useEffect(() => { loadDetail(); }, [selectedPath]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -421,11 +458,11 @@
         h(Card, { className: "xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto" },
           h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-base" }, "Project files")),
           h(CardContent, { className: "pt-0" }, h(ProjectList, { projects, selectedPath, onSelect: setSelectedPath, loading }))),
-        h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading })),
+        h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading, onRefresh: loadDetail })),
         h("div", { className: "flex flex-col gap-4" },
           h(LaunchPanel, { detail, onLaunch: async (task, role) => {
             if (!detail) return;
-            const res = await fetchJSON(`${API_BASE}/projects/${detail.id}/runs`, { method: "POST", body: { path: detail.path, task, role_id: role } });
+            const res = await fetchJSON(`${API}/projects/${detail.id}/runs`, { method: "POST", body: { path: detail.path, task, role_id: role } });
             if (res.ok) { alert(`Run ${res.run_id} started`); } else { alert(res.error || "Launch failed"); }
           } }),
           h(Card, null,
@@ -445,7 +482,11 @@
                     setError(err.message || String(err));
                   }
                 },
-              }))))));
+              }))),
+            )
+          ),
+          h(ToastContainer, { toasts: toasts })
+        );
   }
 
   function OnboardingWalkthrough() {
