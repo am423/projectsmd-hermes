@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .models import CurrentState, ProjectSummary, TaskCounts
+from .models import CurrentState, ProjectDecision, ProjectDiscovery, ProjectSummary, ProjectTask, Requirements, TaskCounts
 
 TASK_RE = re.compile(r"^\s*- \[(?P<mark>[ xX])\]\s+(?P<body>.*)$")
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
@@ -61,6 +61,10 @@ def get_project_detail(project_md: str | Path) -> dict[str, Any]:
     summary["raw"] = text
     summary["sections"] = sections
     summary["current_state"] = current_state
+    summary["structured_tasks"] = [task.to_dict() for task in parse_tasks(sections.get("Tasks", ""))]
+    summary["decisions"] = [decision.to_dict() for decision in parse_decisions(sections.get("Key Decisions", ""))]
+    summary["discoveries"] = [discovery.to_dict() for discovery in parse_discoveries(sections.get("Discoveries", ""))]
+    summary["requirements"] = parse_requirements(sections.get("Requirements", "")).to_dict()
     return summary
 
 
@@ -172,6 +176,67 @@ def count_tasks(text: str) -> TaskCounts:
         if "blocked" in body or "blocker" in body:
             blocked += 1
     return TaskCounts(done=done, pending=pending, blocked=blocked, total=done + pending)
+
+
+def parse_tasks(section: str) -> list[ProjectTask]:
+    tasks: list[ProjectTask] = []
+    phase = ""
+    task_id = 1
+    for line in section.splitlines():
+        phase_match = re.match(r"^###\s+Phase:\s*(.+)$", line, re.IGNORECASE)
+        if phase_match:
+            phase = phase_match.group(1).strip().lower()
+            continue
+        match = TASK_RE.match(line)
+        if not match:
+            continue
+        title = match.group("body").strip()
+        lowered = title.lower()
+        tasks.append(ProjectTask(id=task_id, title=title, phase=phase, done=match.group("mark").lower() == "x", blocked="blocked" in lowered or "blocker" in lowered))
+        task_id += 1
+    return tasks
+
+
+def parse_decisions(section: str) -> list[ProjectDecision]:
+    decisions: list[ProjectDecision] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or "---" in stripped or stripped.lower().startswith("| decision"):
+            continue
+        cells = [cell.strip() for cell in stripped.split("|")[1:-1]]
+        if len(cells) >= 3:
+            decisions.append(ProjectDecision(decision=cells[0], rationale=cells[1], outcome=cells[2]))
+    return decisions
+
+
+def parse_discoveries(section: str) -> list[ProjectDiscovery]:
+    discoveries: list[ProjectDiscovery] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- ") and not stripped.startswith("<!--"):
+            discoveries.append(ProjectDiscovery(text=stripped[2:].strip()))
+    return discoveries
+
+
+def _list_items(text: str) -> list[str]:
+    return [line.strip()[2:].strip() for line in text.splitlines() if line.strip().startswith("- ") and not line.strip().startswith("<!--")]
+
+
+def parse_requirements(section: str) -> Requirements:
+    matches = list(re.finditer(r"^###\s+(.+?)\s*$", section, re.MULTILINE))
+    req = Requirements()
+    for index, match in enumerate(matches):
+        title = match.group(1).strip().lower()
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(section)
+        items = _list_items(section[start:end])
+        if title == "validated":
+            req.validated = items
+        elif title == "active":
+            req.active = items
+        elif title == "out of scope":
+            req.out_of_scope = items
+    return req
 
 
 def project_id(path: Path) -> str:

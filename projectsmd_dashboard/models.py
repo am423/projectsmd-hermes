@@ -10,6 +10,46 @@ from typing import Any
 
 
 @dataclass
+class ProjectTask:
+    id: int
+    title: str
+    phase: str = ""
+    done: bool = False
+    blocked: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "title": self.title, "phase": self.phase, "done": self.done, "blocked": self.blocked}
+
+
+@dataclass
+class ProjectDecision:
+    decision: str
+    rationale: str = ""
+    outcome: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"decision": self.decision, "rationale": self.rationale, "outcome": self.outcome}
+
+
+@dataclass
+class ProjectDiscovery:
+    text: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"text": self.text}
+
+
+@dataclass
+class Requirements:
+    validated: list[str] = field(default_factory=list)
+    active: list[str] = field(default_factory=list)
+    out_of_scope: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"validated": self.validated, "active": self.active, "out_of_scope": self.out_of_scope}
+
+
+@dataclass
 class TaskCounts:
     done: int = 0
     pending: int = 0
@@ -108,6 +148,10 @@ class ProjectDetail:
     raw: str = ""
     sections: dict[str, str] = field(default_factory=dict)
     current_state: CurrentState = field(default_factory=CurrentState)
+    structured_tasks: list[ProjectTask] = field(default_factory=list)
+    decisions: list[ProjectDecision] = field(default_factory=list)
+    discoveries: list[ProjectDiscovery] = field(default_factory=list)
+    requirements: Requirements = field(default_factory=Requirements)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -129,4 +173,8 @@ class ProjectDetail:
             "raw": self.raw,
             "sections": self.sections,
             "current_state": self.current_state.to_dict(),
+            "structured_tasks": [task.to_dict() for task in self.structured_tasks],
+            "decisions": [decision.to_dict() for decision in self.decisions],
+            "discoveries": [discovery.to_dict() for discovery in self.discoveries],
+            "requirements": self.requirements.to_dict(),
         }

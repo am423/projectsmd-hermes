@@ -108,16 +108,41 @@ status: define
 
 A demo project.
 
+## Requirements
+
+### Validated
+
+- ✓ Existing value — v0.1
+
+### Active
+
+- [ ] Build dashboard
+
+### Out of Scope
+
+- Mobile app — not now
+
 ## Current State
 
 **Phase:** define
 **Next action:** Decide scope
+
+## Tasks
+
+### Phase: BUILD
+
+- [x] Scaffold plugin
+- [ ] Render project list
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Use plugin | Follows Hermes docs | Pending |
+
+## Discoveries
+
+- Dashboard plugins use SDK components
 """,
                 encoding="utf-8",
             )
@@ -127,6 +152,12 @@ A demo project.
         self.assertIn("What This Is", detail["sections"])
         self.assertIn("Current State", detail["sections"])
         self.assertIn("project: Demo", detail["raw"])
+        self.assertEqual(detail["structured_tasks"][0]["title"], "Scaffold plugin")
+        self.assertTrue(detail["structured_tasks"][0]["done"])
+        self.assertEqual(detail["structured_tasks"][1]["phase"], "build")
+        self.assertEqual(detail["decisions"][0]["decision"], "Use plugin")
+        self.assertEqual(detail["discoveries"][0]["text"], "Dashboard plugins use SDK components")
+        self.assertEqual(detail["requirements"]["active"], ["[ ] Build dashboard"])
 
 
 if __name__ == "__main__":
