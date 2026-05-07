@@ -161,3 +161,4 @@ Agentic project management
 <!-- Date-stamped development entries -->
 <!-- Format: - **YYYY-MM-DD** — Description. (duration) -->
 - **2026-05-07** — Created a detailed implementation plan for a fully featured ProjectsMD Hermes dashboard addon at docs/plans/2026-05-07-fully-featured-projectsmd-hermes-ui.md.
+- **2026-05-07** — Completed the fully featured ProjectsMD Hermes dashboard addon implementation pass: safety contracts, frontend source build, onboarding/root management, structured project detail parsing, approval queue snapshots, real Hermes tmux launch command, PROJECT_* event parsing, quality gates/GitHub/ship panel, production readiness docs, user/operator/security docs, smoke tests, pytest, and cargo tests.
