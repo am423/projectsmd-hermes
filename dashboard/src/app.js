@@ -720,7 +720,7 @@
       { title: "Keyboard shortcuts", body: "Ctrl+R = rescan, Ctrl+N = select project by path, Escape = clear selection." },
     ];
     if (step >= steps.length) return null;
-    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" },
+    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80" },
       h("div", { className: "max-w-sm rounded-lg border border-border bg-background p-4 shadow-lg" },
         h("h3", { className: "text-sm font-semibold" }, steps[step].title),
         h("p", { className: "mt-1 text-xs text-muted-foreground" }, steps[step].body),
