@@ -99,3 +99,40 @@ class TestBundle:
         assert "Escape" in bundle
         assert "Loading..." in bundle
         assert "Scanning..." in bundle
+    def test_tutorial_is_optional_and_not_forced(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        assert "Tutorial" in bundle
+        assert "showTutorial" in bundle
+        assert "OnboardingWalkthrough" not in bundle
+        assert "h(OnboardingWalkthrough" not in bundle
+        assert "optional help" in bundle
+
+    def test_bundle_exposes_full_workflow_controls(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        required = [
+            "Search projects",
+            "Filter by phase",
+            "Rescan",
+            "New Project",
+            "Roots",
+            "Add task",
+            "Add decision",
+            "Add discovery",
+            "Diff preview / Queue",
+            "Queue for approval",
+            "Launch run",
+            "Orchestrator Runs",
+            "Verify & Ship",
+        ]
+        for token in required:
+            assert token in bundle
+
+    def test_bundle_forbids_stale_tutorial_copy_and_blur(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        forbidden = [
+            "+ Add buttons to add tasks, decisions, and discoveries",
+            "Ctrl+N = select project by path",
+            "backdrop-blur",
+        ]
+        for token in forbidden:
+            assert token not in bundle

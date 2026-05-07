@@ -16,9 +16,10 @@ class ProjectTask:
     phase: str = ""
     done: bool = False
     blocked: bool = False
+    mutable: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "title": self.title, "phase": self.phase, "done": self.done, "blocked": self.blocked}
+        return {"id": self.id, "title": self.title, "phase": self.phase, "done": self.done, "blocked": self.blocked, "mutable": self.mutable}
 
 
 @dataclass

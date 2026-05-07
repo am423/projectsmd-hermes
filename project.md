@@ -49,11 +49,11 @@ Agentic project management
 ## Current State
 
 **Phase:** build
-**Last completed:** 36/36 implementation milestones + CI fix
-**In progress:** Production readiness review — 23 gaps identified
-**Next action:** Fix XSS on line 234 (highest severity)
+**Last completed:** Optional tutorial, full mutation forms, root/blocker fixes, dashboard spacing polish, queue/run workflow improvements, and verification suite
+**In progress:** Remaining release polish and any intentionally deferred production-readiness items
+**Next action:** Review remaining unchecked release tasks, then package/tag when ready
 **Blockers:** none
-**Notes:** 74 tests green, ruff clean, CI passing. Frontend needs polish pass.
+**Notes:** Python tests, Rust tests, dashboard smoke, bundle syntax, and live localhost endpoints verified. Tutorial is optional help only.
 ## Architecture
 
 <!-- High-level design, data flow, file structure -->
@@ -82,65 +82,65 @@ Agentic project management
 
 ### Phase: BUILD
 
-- [ ] Project setup
-- [ ] Core implementation
-- [ ] Error handling
+- [x] Project setup
+- [x] Core implementation
+- [x] Error handling
 
 
-- [ ] Task 2: No loading states on action buttons — no spinner/disabled state during API calls
+- [x] Task 2: No loading states on action buttons — no spinner/disabled state during API calls
 
 
-- [ ] Task 3: Queue list uses innerHTML string concatenation — XSS vector on line 234
-- [ ] Task 1: Mutation UX is fragile — alert() + location.reload() on every action instead of inline feedback
+- [x] Task 3: Queue list uses innerHTML string concatenation — XSS vector on line 234
+- [x] Task 1: Mutation UX is fragile — alert() + location.reload() on every action instead of inline feedback
 
 
-- [ ] Task 5: No aria labels or keyboard navigation — accessibility gap
-- [ ] Task 4: No input validation on prompt() dialogs — should use modal forms
+- [x] Task 5: No aria labels or keyboard navigation — accessibility gap
+- [x] Task 4: No input validation on prompt() dialogs — should use modal forms
 
 
 - [ ] Task 7: No rate limiting or debounce on rapid mutation clicks — can spam backend
 - [ ] Task 6: No mobile/tablet responsive testing — only xl: breakpoints
 
 
-- [ ] Task 9: No backend healthcheck integration — UI shows generic error when backend down
+- [x] Task 9: No backend healthcheck integration — UI shows generic error when backend down
 - [ ] Task 8: Error boundary is barebones — no stack trace toggle, no copy-to-clipboard, no report option
 
 
-- [ ] Task 11: API_BASE variable uses hardcoded /api/plugins/projectsmd — should use SDK-provided prefix
-- [ ] Task 10: Plugin manifest missing min Hermes version declaration
+- [x] Task 11: API_BASE variable uses hardcoded /api/plugins/projectsmd — should use SDK-provided prefix
+- [x] Task 10: Plugin manifest missing min Hermes version declaration
 
 
-- [ ] Task 13: No Hermes logo or brand color in the UI header
+- [x] Task 13: No Hermes logo or brand color in the UI header
 - [ ] Task 12: No plugin configuration schema declared for Hermes plugin registry
 
 
 - [ ] Task 15: Color tokens should inherit from Hermes theme system, not hardcoded CSS classes
-- [ ] Task 14: Header says 'Projects' not 'Hermes Projects' — no brand association
+- [x] Task 14: Header says 'Projects' not 'Hermes Projects' — no brand association
 
 
-- [ ] Task 17: No project completion badge — only percentage bar, no 'Complete' or 'Shipped' visual indicator
-- [ ] Task 16: No link to Hermes docs/settings from dashboard UI
+- [x] Task 17: No project completion badge — only percentage bar, no 'Complete' or 'Shipped' visual indicator
+- [x] Task 16: No link to Hermes docs/settings from dashboard UI
 
 
 - [ ] Task 19: No subagent completion tracking in UI — no concept of subagent hierarchy
 - [ ] Task 18: No orchestrator run status panel — no live output, no status indicator, launch just alerts
 
 
-- [ ] Task 21: Task done/blocked use only text markers (✓/○) — no color coding, no icons, no progress animation
-- [ ] Task 20: Phase badges all look the same — outline variant used for all, no color distinction (SHIP vs BUILD vs DEFINE)
+- [x] Task 21: Task done/blocked use only text markers (✓/○) — no color coding, no icons, no progress animation
+- [x] Task 20: Phase badges all look the same — outline variant used for all, no color distinction (SHIP vs BUILD vs DEFINE)
 
 
-- [ ] Task 23: No run history or timeline view — can't see past orchestrator runs
+- [x] Task 23: No run history or timeline view — can't see past orchestrator runs
 - [ ] Task 22: No transition animations for state changes — full page reload feels jarring
 ### Phase: VERIFY
 
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing
+- [x] Unit tests pass
+- [x] Integration tests pass
+- [x] Manual testing
 
 ### Phase: SHIP
 
-- [ ] Documentation
+- [x] Documentation
 - [ ] Release packaging
 - [ ] Tag release
 ## Discoveries
@@ -162,3 +162,4 @@ Agentic project management
 <!-- Format: - **YYYY-MM-DD** — Description. (duration) -->
 - **2026-05-07** — Created a detailed implementation plan for a fully featured ProjectsMD Hermes dashboard addon at docs/plans/2026-05-07-fully-featured-projectsmd-hermes-ui.md.
 - **2026-05-07** — Completed the fully featured ProjectsMD Hermes dashboard addon implementation pass: safety contracts, frontend source build, onboarding/root management, structured project detail parsing, approval queue snapshots, real Hermes tmux launch command, PROJECT_* event parsing, quality gates/GitHub/ship panel, production readiness docs, user/operator/security docs, smoke tests, pytest, and cargo tests.
+- **2026-05-07** — Implemented optional tutorial button (no forced welcome dialog), full task/decision/discovery mutation forms, explicit blocker parsing, duplicate root cleanup, dashboard spacing polish, queue/run workflow improvements, and verified Python/Rust/smoke/live endpoint checks.

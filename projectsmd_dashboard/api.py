@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .config import load_config, save_config, validate_roots
+from .config import dedupe_roots, load_config, save_config, validate_roots
 from .diff_preview import diff_from_file
 from .project_scan import get_project_detail, scan_projects
 from .projectsmd_cli import (
@@ -69,10 +69,15 @@ def _tool_version(command: str) -> dict[str, Any]:
     return {"available": True, "path": path, "version": version}
 
 
+def _ensure_cli_ok(result: dict[str, Any]) -> None:
+    if not result.get("ok"):
+        detail = result.get("stderr") or result.get("stdout") or "projectsmd command failed"
+        raise HTTPException(status_code=409, detail=detail)
+
 @router.get("/health")
 def health() -> dict[str, Any]:
     config = load_config()
-    roots = config.get("project_roots", [])
+    roots = dedupe_roots(config.get("project_roots", []))
     return {
         "ok": True,
         "plugin": "projectsmd",
@@ -94,6 +99,7 @@ def get_config() -> dict[str, Any]:
 def put_config(config: dict[str, Any]) -> dict[str, Any]:
     current = load_config()
     merged = {**current, **config}
+    merged["project_roots"] = dedupe_roots(merged.get("project_roots", []))
     save_config(merged)
     return {**merged, "root_status": validate_roots(merged.get("project_roots", []))}
 
@@ -101,7 +107,7 @@ def put_config(config: dict[str, Any]) -> dict[str, Any]:
 @router.get("/projects")
 def projects(roots: list[str] | None = None) -> dict[str, Any]:
     config = load_config()
-    selected_roots = roots or config.get("project_roots", [])
+    selected_roots = dedupe_roots(roots or config.get("project_roots", []))
     return {"projects": scan_projects(selected_roots), "roots": selected_roots}
 
 
@@ -147,6 +153,7 @@ def validate_project(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
 def add_task(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = task_add(project_md, body.get("title", ""), phase=body.get("phase"))
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 
@@ -154,6 +161,7 @@ def add_task(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
 def done_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = task_done(project_md, task_id)
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 
@@ -161,6 +169,7 @@ def done_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[str, 
 def block_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = task_block(project_md, task_id, body.get("reason", ""))
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 
@@ -168,6 +177,7 @@ def block_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[str,
 def unblock_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = task_unblock(project_md, task_id)
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 
@@ -175,6 +185,7 @@ def unblock_task(project_id: str, task_id: int, body: dict[str, Any]) -> dict[st
 def add_decision(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = decide(project_md, body.get("decision", ""), rationale=body.get("rationale"))
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 
@@ -182,6 +193,7 @@ def add_decision(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
 def add_discovery(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
     project_md = _resolve_project_md(body)
     result = discover(project_md, body.get("text", ""))
+    _ensure_cli_ok(result)
     return {"result": result, "detail": get_project_detail(project_md)}
 
 

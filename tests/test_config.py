@@ -5,7 +5,7 @@ import os
 import tempfile
 
 
-from projectsmd_dashboard.config import default_config, load_config, save_config, validate_roots
+from projectsmd_dashboard.config import default_config, dedupe_roots, load_config, save_config, validate_roots
 
 
 class TestConfig:
@@ -54,3 +54,20 @@ class TestConfig:
         assert statuses[0]["project_count"] == 1
         assert statuses[1]["ok"] is False
         assert statuses[1]["reason"] == "not_found"
+    def test_dedupe_roots_preserves_order_and_removes_duplicates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "root")
+            os.makedirs(root)
+            roots = dedupe_roots([root, root, os.path.join(tmp, "missing"), os.path.join(tmp, "missing")])
+
+        assert roots == [root, os.path.join(tmp, "missing")]
+
+    def test_save_config_deduplicates_project_roots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["HERMES_HOME"] = tmp
+            try:
+                save_config({"project_roots": ["/tmp/projects", "/tmp/projects"], "auto_validate": True})
+                loaded = load_config()
+                assert loaded["project_roots"] == ["/tmp/projects"]
+            finally:
+                del os.environ["HERMES_HOME"]

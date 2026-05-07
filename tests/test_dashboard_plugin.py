@@ -154,10 +154,48 @@ A demo project.
         self.assertIn("project: Demo", detail["raw"])
         self.assertEqual(detail["structured_tasks"][0]["title"], "Scaffold plugin")
         self.assertTrue(detail["structured_tasks"][0]["done"])
+        self.assertFalse(detail["structured_tasks"][0]["mutable"])
         self.assertEqual(detail["structured_tasks"][1]["phase"], "build")
         self.assertEqual(detail["decisions"][0]["decision"], "Use plugin")
         self.assertEqual(detail["discoveries"][0]["text"], "Dashboard plugins use SDK components")
         self.assertEqual(detail["requirements"]["active"], ["[ ] Build dashboard"])
+
+    def test_scan_projects_deduplicates_duplicate_roots(self):
+        from projectsmd_dashboard.project_scan import scan_projects
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            project_dir = root / "demo"
+            project_dir.mkdir()
+            (project_dir / "project.md").write_text("---\nproject: Demo\n---\n\n## Tasks\n\n- [ ] One\n", encoding="utf-8")
+
+            projects = scan_projects([root, root])
+
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0]["name"], "Demo")
+
+    def test_blocked_counts_require_explicit_block_marker(self):
+        from projectsmd_dashboard.project_scan import count_tasks, parse_tasks
+
+        text = """- [ ] Task done/blocked use only text markers
+- [ ] Fix deploy <!-- blocked: waiting on token -->
+- [!] Explicit blocker
+- [x] Complete
+- [ ] Task 42: Numbered mutable task
+"""
+
+        counts = count_tasks(text)
+        tasks = parse_tasks("### Phase: BUILD\n" + text)
+
+        self.assertEqual(counts.done, 1)
+        self.assertEqual(counts.pending, 4)
+        self.assertEqual(counts.blocked, 2)
+        self.assertFalse(tasks[0].blocked)
+        self.assertTrue(tasks[1].blocked)
+        self.assertTrue(tasks[2].blocked)
+        self.assertEqual(tasks[4].id, 42)
+        self.assertEqual(tasks[4].title, "Numbered mutable task")
+        self.assertTrue(tasks[4].mutable)
 
 
 if __name__ == "__main__":

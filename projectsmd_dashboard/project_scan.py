@@ -7,7 +7,7 @@ from typing import Any
 
 from .models import CurrentState, ProjectDecision, ProjectDiscovery, ProjectSummary, ProjectTask, Requirements, TaskCounts
 
-TASK_RE = re.compile(r"^\s*- \[(?P<mark>[ xX])\]\s+(?P<body>.*)$")
+TASK_RE = re.compile(r"^\s*- \[(?P<mark>[ xX!])\]\s+(?P<body>.*)$")
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 CURRENT_STATE_RE = re.compile(r"^\*\*(?P<key>[^*]+):\*\*\s*(?P<value>.*)$", re.MULTILINE)
 
@@ -169,11 +169,12 @@ def count_tasks(text: str) -> TaskCounts:
         if not match:
             continue
         body = match.group("body").lower()
-        if match.group("mark").lower() == "x":
+        mark = match.group("mark").lower()
+        if mark == "x":
             done += 1
         else:
             pending += 1
-        if "blocked" in body or "blocker" in body:
+        if mark == "!" or re.search(r"<!--\s*blocked\s*:", body):
             blocked += 1
     return TaskCounts(done=done, pending=pending, blocked=blocked, total=done + pending)
 
@@ -192,7 +193,11 @@ def parse_tasks(section: str) -> list[ProjectTask]:
             continue
         title = match.group("body").strip()
         lowered = title.lower()
-        tasks.append(ProjectTask(id=task_id, title=title, phase=phase, done=match.group("mark").lower() == "x", blocked="blocked" in lowered or "blocker" in lowered))
+        mark = match.group("mark").lower()
+        id_match = re.match(r"^Task\s+(\d+)\s*:\s*(.+)$", title, re.IGNORECASE)
+        cli_id = int(id_match.group(1)) if id_match else 0
+        display_title = id_match.group(2).strip() if id_match else title
+        tasks.append(ProjectTask(id=cli_id, title=display_title, phase=phase, done=mark == "x", blocked=mark == "!" or re.search(r"<!--\s*blocked\s*:", lowered) is not None, mutable=cli_id > 0))
         task_id += 1
     return tasks
 
