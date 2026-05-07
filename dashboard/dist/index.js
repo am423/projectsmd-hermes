@@ -558,23 +558,27 @@
       return acc;
     }, { done: 0, pending: 0, blocked: 0, total: 0 }), [projects]);
 
-    async function loadDetail() {
+    async function loadDetail(silent) {
       if (!selectedPath) { setDetail(null); return; }
-      setDetailLoading(true);
-      setError(null);
+      if (!silent) {
+        setDetailLoading(true);
+        setError(null);
+      }
       try {
         var data = await fetchJSON(`${API}/projects/detail?path=${encodeURIComponent(selectedPath)}`);
         setDetail(data);
       } catch (err) {
-        setError(err.message || String(err));
+        if (!silent) setError(err.message || String(err));
       } finally {
-        setDetailLoading(false);
+        if (!silent) setDetailLoading(false);
       }
     }
 
-    async function loadProjects() {
-      setLoading(true);
-      setError(null);
+    async function loadProjects(silent) {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       try {
         const healthData = await fetchJSON(`${API}/health`);
         const projectData = await fetchJSON(`${API}/projects`);
@@ -586,6 +590,7 @@
           return nextProjects.length ? nextProjects[0].path : null;
         });
       } catch (err) {
+        if (silent) return;
         var msg = err.message || String(err);
         if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1) {
           setError("Cannot reach ProjectsMD backend. Restart with: hermes dashboard --no-open");
@@ -593,13 +598,44 @@
           setError(msg + ". Restart hermes dashboard if you just installed or updated the plugin.");
         }
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     }
 
     useEffect(() => { loadProjects(); }, []);
 
     useEffect(() => { loadDetail(); }, [selectedPath]);
+
+    useEffect(() => {
+      function refreshLive() {
+        if (document.hidden) return;
+        loadProjects(true);
+      }
+      var timer = setInterval(refreshLive, 2000);
+      window.addEventListener("focus", refreshLive);
+      document.addEventListener("visibilitychange", refreshLive);
+      return function () {
+        clearInterval(timer);
+        window.removeEventListener("focus", refreshLive);
+        document.removeEventListener("visibilitychange", refreshLive);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!selectedPath) return;
+      function refreshDetailLive() {
+        if (document.hidden) return;
+        loadDetail(true);
+      }
+      var timer = setInterval(refreshDetailLive, 2000);
+      window.addEventListener("focus", refreshDetailLive);
+      document.addEventListener("visibilitychange", refreshDetailLive);
+      return function () {
+        clearInterval(timer);
+        window.removeEventListener("focus", refreshDetailLive);
+        document.removeEventListener("visibilitychange", refreshDetailLive);
+      };
+    }, [selectedPath]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -624,7 +660,7 @@
           health && health.projectsmd ? h(Badge, { variant: health.projectsmd.available ? "outline" : "destructive" },
             health.projectsmd.available ? "projectsmd available" : "projectsmd missing") : null,
           h(Button, { onClick: function () { setShowCreateProject(true); } }, "New Project"),
-          h(Button, { onClick: loadProjects, disabled: loading }, loading ? "Scanning..." : "Rescan"),
+          h(Button, { onClick: function () { loadProjects(); }, disabled: loading }, loading ? "Scanning..." : "Rescan"),
           h("a", { href: "https://hermes-agent.nousresearch.com/docs", target: "_blank", className: "text-xs text-muted-foreground hover:text-foreground underline" }, "Docs"))),
 
       error ? h("div", { role: "alert", className: "rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" }, error) : null,
@@ -658,7 +694,7 @@
         h(Card, { className: "xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto" },
           h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-base" }, "Project files")),
           h(CardContent, { className: "pt-0" }, h(ProjectList, { projects: visibleProjects, selectedPath, onSelect: setSelectedPath, loading }))),
-        h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading, onRefresh: loadDetail })),
+        h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading, onRefresh: async function () { await loadDetail(true); await loadProjects(true); } })),
         h("div", { className: "flex flex-col gap-4" },
           h(LaunchPanel, { detail, onLaunch: async (task, role) => {
             if (!detail) return;
