@@ -400,6 +400,25 @@
             }))) : null));
   }
 
+  function LifecyclePanels({ detail }) {
+    const [gates, setGates] = useState(null);
+    const [ship, setShip] = useState(null);
+    const [repo, setRepo] = useState(null);
+    async function loadLifecycle() {
+      if (!detail) return;
+      try { setGates(await fetchJSON(`${API}/gates`)); } catch (_) { setGates({ error: "Quality gates unavailable" }); }
+      try { setShip(await fetchJSON(`${API}/projects/${detail.id}/ship?path=${encodeURIComponent(detail.path)}`)); } catch (_) { setShip({ error: "Ship checklist unavailable" }); }
+      try { setRepo(await fetchJSON(`${API}/github/repo?path=${encodeURIComponent(detail.path)}`)); } catch (_) { setRepo({ error: "GitHub unavailable" }); }
+    }
+    return h(Card, null,
+      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Verify & Ship")),
+      h(CardContent, { className: "pt-0 text-xs flex flex-col gap-2" },
+        h(Button, { className: "h-7 px-2 text-xs", disabled: !detail, onClick: loadLifecycle }, "Load Quality Gates, GitHub, Ship Checklist"),
+        gates ? h("div", { className: "rounded border border-border p-2" }, "Quality Gates: ", gates.error || ((gates.gates || []).length + " configured")) : null,
+        repo ? h("div", { className: "rounded border border-border p-2" }, "GitHub: ", repo.error || repo.full_name || repo.repo || "detected") : null,
+        ship ? h("div", { className: "rounded border border-border p-2" }, "Ship Checklist: ", ship.error || ((ship.items || []).filter((i) => i.checked).length + "/" + (ship.items || []).length + " complete")) : null));
+  }
+
   function RootManager({ roots, rootStatus, onChange }) {
     const [input, setInput] = useState("");
     return h("div", { className: "flex flex-col gap-2" },
@@ -642,6 +661,7 @@
             if (res.ok) { addToast("Run " + res.run_id + " started"); } else { addToast(res.error || "Launch failed", "destructive"); }
           } }),
           h(RunPanel, { detail: detail }),
+          h(LifecyclePanels, { detail: detail }),
           h(Card, null,
             h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Roots")),
             h(CardContent, { className: "pt-0" },

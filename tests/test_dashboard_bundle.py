@@ -72,6 +72,9 @@ class TestBundle:
             "components/runs.js",
             "components/queue.js",
             "components/settings.js",
+            "components/quality-gates.js",
+            "components/github-panel.js",
+            "components/ship-checklist.js",
         ]
         for rel in expected:
             assert (REPO_ROOT / "dashboard" / "src" / rel).exists(), rel
@@ -81,3 +84,9 @@ class TestBundle:
         source = (REPO_ROOT / "dashboard" / "src" / "app.js").read_text()
         dist = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
         assert source == dist
+
+    def test_bundle_includes_lifecycle_panels(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        assert "Quality Gates" in bundle
+        assert "GitHub" in bundle
+        assert "Ship Checklist" in bundle
