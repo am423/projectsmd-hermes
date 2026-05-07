@@ -30,6 +30,7 @@ from .tmux_runtime import kill_run, spawn_run
 from .update_queue import approve_update, enqueue_update, list_pending, reject_update
 from .gates import QualityGate, check_gate, fail_gate, load_gates, reset_gate, run_all_gates, save_gates
 from .github_integration import get_repo_info, list_issues, list_prs
+from .locks import project_lock
 from .ship_checklist import check_ship_item, ship_status, uncheck_ship_item
 
 try:
@@ -255,19 +256,23 @@ def get_queue(project_id: str, path: str) -> dict[str, Any]:
 
 
 @router.post("/projects/{project_id}/queue/{update_id}/approve")
-def approve_queue_update(project_id: str, update_id: str) -> dict[str, Any]:
-    update = approve_update(update_id)
+def approve_queue_update(project_id: str, update_id: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+    comment = (body or {}).get("comment", "") if isinstance(body, dict) else ""
+    update = approve_update(update_id, comment=comment)
     if not update:
         raise HTTPException(status_code=404, detail="update not found")
-    # Write the approved content to project.md
+    # Snapshot and serialize the approved write to project.md.
     project_md = Path(update.project_path)
-    project_md.write_text(update.proposed, encoding="utf-8")
-    return {"update": update.__dict__, "detail": get_project_detail(project_md)}
+    with project_lock(project_md):
+        snap = snapshot(project_md)
+        project_md.write_text(update.proposed, encoding="utf-8")
+    return {"update": update.__dict__, "snapshot": str(snap), "detail": get_project_detail(project_md)}
 
 
 @router.post("/projects/{project_id}/queue/{update_id}/reject")
-def reject_queue_update(project_id: str, update_id: str) -> dict[str, Any]:
-    update = reject_update(update_id)
+def reject_queue_update(project_id: str, update_id: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+    comment = (body or {}).get("comment", "") if isinstance(body, dict) else ""
+    update = reject_update(update_id, comment=comment)
     if not update:
         raise HTTPException(status_code=404, detail="update not found")
     return {"update": update.__dict__}

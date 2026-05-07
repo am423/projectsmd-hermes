@@ -22,6 +22,12 @@ class PendingUpdate:
     status: str  # "pending" | "approved" | "rejected"
     created_at: str
     metadata: dict[str, Any] = field(default_factory=dict)
+    created_by: str = "user"
+    reason: str = ""
+    run_id: str = ""
+    assignment_id: str = ""
+    reviewed_at: str = ""
+    review_comment: str = ""
 
 
 def _queue_path() -> Path:
@@ -49,6 +55,7 @@ def _save_queue(queue: list[PendingUpdate]) -> None:
 
 
 def enqueue_update(project_path: str, proposed: str, diff: str, meta: dict[str, Any] | None = None) -> PendingUpdate:
+    meta = meta or {}
     update = PendingUpdate(
         id=str(uuid.uuid4())[:8],
         project_path=project_path,
@@ -56,7 +63,11 @@ def enqueue_update(project_path: str, proposed: str, diff: str, meta: dict[str, 
         diff=diff,
         status="pending",
         created_at=datetime.now(timezone.utc).isoformat(),
-        metadata=meta or {},
+        metadata=meta,
+        created_by=str(meta.get("created_by", "user")),
+        reason=str(meta.get("reason", "")),
+        run_id=str(meta.get("run_id", "")),
+        assignment_id=str(meta.get("assignment_id", "")),
     )
     queue = _load_queue()
     queue.append(update)
@@ -71,21 +82,24 @@ def list_pending(project_path: str | None = None) -> list[PendingUpdate]:
     return [q for q in queue if q.status == "pending"]
 
 
-def approve_update(update_id: str) -> PendingUpdate | None:
+def approve_update(update_id: str, comment: str = "") -> PendingUpdate | None:
     queue = _load_queue()
     for q in queue:
         if q.id == update_id:
             q.status = "approved"
+            q.reviewed_at = datetime.now(timezone.utc).isoformat()
+            q.review_comment = comment
             _save_queue(queue)
             return q
     return None
 
 
-def reject_update(update_id: str) -> PendingUpdate | None:
+def reject_update(update_id: str, comment: str = "") -> PendingUpdate | None:
     queue = _load_queue()
     for q in queue:
         if q.id == update_id:
             q.status = "rejected"
+            q.reviewed_at = datetime.now(timezone.utc).isoformat()
+            q.review_comment = comment
             _save_queue(queue)
             return q
-    return None
