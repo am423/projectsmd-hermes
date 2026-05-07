@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 python3 -m unittest tests.test_dashboard_plugin -v
+python3 -m pytest tests/test_dashboard_bundle.py tests/test_plugin_api_contract.py -q
 node --check "$repo_root/dashboard/dist/index.js"
 python3 - <<'PY'
 import importlib.util
@@ -22,6 +23,14 @@ spec = importlib.util.spec_from_file_location('plugin_api', root / 'dashboard' /
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 assert hasattr(module, 'router')
+
+from projectsmd_dashboard.api import health, projects
+health_data = health()
+assert health_data['ok'] is True
+assert 'root_status' in health_data
+project_data = projects()
+assert 'projects' in project_data
+assert 'roots' in project_data
 print('dashboard smoke ok')
 PY
 

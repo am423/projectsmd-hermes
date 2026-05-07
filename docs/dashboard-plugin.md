@@ -7,8 +7,15 @@ Current scope:
 - registers `/projects` in the dashboard nav
 - checks `projectsmd`, `tmux`, and `hermes` availability
 - scans configured roots for `project.md` files
-- renders project phase, current state, task counts, decisions, discoveries, and raw markdown
-- leaves orchestrator launch disabled until the next implementation slice
+- validates roots and shows onboarding/setup status
+- creates new ProjectsMD projects from the UI
+- searches and filters project list by query and phase
+- renders project phase, current state, structured tasks, decisions, discoveries, requirements, and raw markdown
+- supports safe task/decision/discovery/session/phase/archive mutations through ProjectsMD CLI wrappers
+- supports diff preview, approval queue metadata, snapshots, and restore
+- launches Hermes orchestrator runs through tmux using `hermes chat -q ... -s projectsmd --pass-session-id`
+- parses structured `PROJECT_*` run protocol lines
+- exposes quality gates, GitHub repo status, and ship checklist panels
 
 ## Install
 
@@ -60,12 +67,37 @@ Hermes mounts the plugin API at:
 /api/plugins/projectsmd
 ```
 
-Available routes:
+Available routes include:
 
 ```text
 GET /api/plugins/projectsmd/health
-GET /api/plugins/projectsmd/projects
+GET/PUT /api/plugins/projectsmd/config
+GET/POST /api/plugins/projectsmd/projects
 GET /api/plugins/projectsmd/projects/detail?path=/path/to/project.md
+POST /api/plugins/projectsmd/projects/{id}/validate
+POST /api/plugins/projectsmd/projects/{id}/tasks
+POST /api/plugins/projectsmd/projects/{id}/tasks/{task_id}/done
+POST /api/plugins/projectsmd/projects/{id}/tasks/{task_id}/block
+POST /api/plugins/projectsmd/projects/{id}/tasks/{task_id}/unblock
+POST /api/plugins/projectsmd/projects/{id}/decisions
+POST /api/plugins/projectsmd/projects/{id}/discoveries
+POST /api/plugins/projectsmd/projects/{id}/session
+POST /api/plugins/projectsmd/projects/{id}/phase-transition
+POST /api/plugins/projectsmd/projects/{id}/archive
+GET/POST /api/plugins/projectsmd/projects/{id}/queue
+POST /api/plugins/projectsmd/projects/{id}/queue/{update_id}/approve
+POST /api/plugins/projectsmd/projects/{id}/queue/{update_id}/reject
+GET/POST /api/plugins/projectsmd/projects/{id}/runs
+GET /api/plugins/projectsmd/projects/{id}/runs/{run_id}
+GET /api/plugins/projectsmd/projects/{id}/runs/{run_id}/poll
+POST /api/plugins/projectsmd/projects/{id}/runs/{run_id}/kill
+GET/PUT /api/plugins/projectsmd/roster
+GET/PUT /api/plugins/projectsmd/policies
+GET/PUT /api/plugins/projectsmd/gates
+GET /api/plugins/projectsmd/github/repo
+GET /api/plugins/projectsmd/github/issues
+GET /api/plugins/projectsmd/github/prs
+GET /api/plugins/projectsmd/projects/{id}/ship
 ```
 
 ## Development checks
@@ -82,14 +114,11 @@ This runs:
 
 ## Security note
 
-Hermes dashboard plugin API routes are intended for localhost use. Keep the dashboard bound to localhost unless you explicitly accept that project scan and future tmux control endpoints are reachable on the network.
+Hermes dashboard plugin API routes are intended for localhost use. Keep the dashboard bound to localhost unless you explicitly accept that project scan, mutation, and tmux-control endpoints are reachable on the network. See [security.md](security.md).
 
-## Next slice
+## Additional docs
 
-The planned next slice adds tmux-backed orchestrator/subagent launch:
-
-- editable roster per ProjectsMD phase
-- tmux run registry
-- output tails
-- structured `PROJECT_*` protocol parsing
-- human checkpoint controls for approve/revise/reassign/stop
+- [User guide](user-guide.md)
+- [Operator guide](operator-guide.md)
+- [Security model](security.md)
+- [Production readiness](production-readiness.md)
