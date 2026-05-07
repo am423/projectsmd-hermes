@@ -26,7 +26,7 @@ from .roster import AgentRole, load_roster, save_roster
 from .run_registry import RunRegistry
 from .safety import SafetyPolicy, check_command, load_policies, save_policies
 from .snapshots import list_snapshots, restore_snapshot, snapshot
-from .tmux_runtime import kill_run, spawn_run
+from .tmux_runtime import build_hermes_command, kill_run, spawn_run
 from .update_queue import approve_update, enqueue_update, list_pending, reject_update
 from .gates import QualityGate, check_gate, fail_gate, load_gates, reset_gate, run_all_gates, save_gates
 from .github_integration import get_repo_info, list_issues, list_prs
@@ -329,7 +329,7 @@ def launch_run(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
     registry = RunRegistry(db_path)
 
     # Safety check on the command
-    command = ["hermes", "agent", "--prompt", prompt]
+    command = build_hermes_command(prompt, role)
     safety = check_command(command)
     if not safety["ok"]:
         raise HTTPException(status_code=403, detail=safety["reason"])

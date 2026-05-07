@@ -17,6 +17,12 @@ class AgentRole:
     skills: list[str] = field(default_factory=list)
     model: str = "default"
     system_prompt: str = ""
+    provider: str = ""
+    toolsets: list[str] = field(default_factory=list)
+    phase_scope: list[str] = field(default_factory=list)
+    max_parallel_tasks: int = 1
+    can_write_files: bool = False
+    requires_checkpoint_before_actions: bool = True
 
 
 def _roster_path() -> Path:
@@ -47,27 +53,20 @@ def save_roster(roster: list[AgentRole]) -> None:
 def _default_roster() -> list[AgentRole]:
     return [
         AgentRole(
-            id="builder",
-            name="Builder",
-            description="Writes code, runs tests, fixes bugs.",
-            skills=["python", "rust", "typescript"],
-            model="default",
-            system_prompt="You are a senior software engineer. Write clean, tested code.",
+            id="orchestrator",
+            name="Orchestrator",
+            description="Owns project.md, phase transitions, assignment, checkpointing, and synthesis.",
+            skills=["projectsmd"],
+            system_prompt="You are the ProjectsMD orchestrator. You are the only default writer to project.md; subagents propose updates.",
+            toolsets=["terminal", "file", "delegation"],
+            phase_scope=["define", "design", "build", "verify", "ship"],
+            can_write_files=True,
         ),
-        AgentRole(
-            id="reviewer",
-            name="Reviewer",
-            description="Reviews code, finds issues, suggests improvements.",
-            skills=["code-review", "security", "performance"],
-            model="default",
-            system_prompt="You are a meticulous code reviewer. Find bugs, suggest improvements.",
-        ),
-        AgentRole(
-            id="architect",
-            name="Architect",
-            description="Designs systems, makes key decisions, plans phases.",
-            skills=["system-design", "api-design", "database"],
-            model="default",
-            system_prompt="You are a systems architect. Design scalable, maintainable systems.",
-        ),
+        AgentRole(id="define", name="Define Agent", description="Clarifies requirements, users, constraints, and out-of-scope boundaries.", skills=["research"], phase_scope=["define"]),
+        AgentRole(id="design", name="Design Agent", description="Designs architecture, interfaces, constraints, and data flow.", skills=["architecture"], phase_scope=["design"]),
+        AgentRole(id="build", name="Build Agent", description="Implements build-phase tasks with tests.", skills=["code", "tests"], toolsets=["terminal", "file"], phase_scope=["build"], can_write_files=True),
+        AgentRole(id="verify", name="Verify Agent", description="Runs tests and validates acceptance criteria.", skills=["testing", "qa"], toolsets=["terminal", "file"], phase_scope=["verify"]),
+        AgentRole(id="ship", name="Ship Agent", description="Handles docs, release, deploy, and ship checklist.", skills=["release", "docs"], phase_scope=["ship"]),
+        AgentRole(id="research", name="Research Agent", description="Researches external docs and prior art.", skills=["research"], toolsets=["web"]),
+        AgentRole(id="review", name="Review Agent", description="Reviews implementation for spec compliance, security, and quality.", skills=["code-review", "security"], toolsets=["terminal", "file"]),
     ]

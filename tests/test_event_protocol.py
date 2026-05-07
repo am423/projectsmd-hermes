@@ -20,6 +20,21 @@ def test_parse_invalid_json_returns_none():
     assert parse_event_line("{not json}") is None
 
 
+def test_parse_project_protocol_line():
+    ev = parse_event_line('PROJECT_ASSIGNMENT: {"assignment_id":"a1","target_agent_role":"build"}')
+    assert ev is not None
+    assert ev.type == "assignment"
+    assert ev.payload["assignment_id"] == "a1"
+    assert ev.payload["target_agent_role"] == "build"
+
+
+def test_parse_project_protocol_non_json_payload():
+    ev = parse_event_line("PROJECT_BLOCKER: waiting on credentials")
+    assert ev is not None
+    assert ev.type == "blocker"
+    assert ev.payload["message"] == "waiting on credentials"
+
+
 def test_parse_stream():
     lines = [
         "{\"type\": \"task\", \"id\": 1}",

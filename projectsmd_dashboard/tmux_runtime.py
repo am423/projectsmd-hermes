@@ -23,6 +23,22 @@ def _session_name(run_id: str) -> str:
     return f"pmd-{run_id.replace('_', '-').replace(' ', '-')[:40]}"
 
 
+def build_hermes_command(prompt: str, role: Any | None = None) -> list[str]:
+    """Build the real Hermes CLI command used for tmux agent runs."""
+    command = ["hermes", "chat", "-q", prompt, "-s", "projectsmd", "--pass-session-id"]
+    if role is not None:
+        model = getattr(role, "model", "")
+        provider = getattr(role, "provider", "")
+        toolsets = getattr(role, "toolsets", [])
+        if model and model != "default":
+            command += ["--model", model]
+        if provider:
+            command += ["--provider", provider]
+        if toolsets:
+            command += ["--toolsets", ",".join(toolsets)]
+    return command
+
+
 def spawn_run(
     run_id: str,
     project_id: str,
