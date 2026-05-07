@@ -784,15 +784,23 @@ See [docs/dashboard-plugin.md](docs/dashboard-plugin.md) for the original read-o
 ### Development
 
 ```bash
+# Rebuild the committed dashboard bundle from source
+python3 dashboard/scripts/build_frontend.py
+
+# Check bundle syntax
+node --check dashboard/dist/index.js
+
+# Run frontend bundle contract tests
+python3 -m pytest tests/test_dashboard_bundle.py -q
+
 # Run all tests
 python3 -m pytest tests -v
 
 # Run smoke test
 bash scripts/smoke-test-dashboard-plugin.sh
-
-# Check bundle syntax
-node --check dashboard/dist/index.js
 ```
+
+Frontend source lives under `dashboard/src/`. Hermes loads `dashboard/dist/index.js` directly, so run the build script after frontend changes and commit both source and dist. The plugin must use the Hermes dashboard SDK (`window.__HERMES_PLUGIN_SDK__`) and must not bundle React.
 
 ### agentskills.io Compliant
 

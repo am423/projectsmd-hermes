@@ -59,3 +59,25 @@ class TestBundle:
         bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
         assert bundle.strip().startswith("(function ()")
         assert bundle.strip().endswith("})();")
+
+    def test_frontend_source_layout_exists(self):
+        expected = [
+            "app.js",
+            "api.js",
+            "components/layout.js",
+            "components/project-list.js",
+            "components/project-detail.js",
+            "components/forms.js",
+            "components/toast.js",
+            "components/runs.js",
+            "components/queue.js",
+            "components/settings.js",
+        ]
+        for rel in expected:
+            assert (REPO_ROOT / "dashboard" / "src" / rel).exists(), rel
+        assert (REPO_ROOT / "dashboard" / "scripts" / "build_frontend.py").exists()
+
+    def test_dist_matches_source_app(self):
+        source = (REPO_ROOT / "dashboard" / "src" / "app.js").read_text()
+        dist = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        assert source == dist
