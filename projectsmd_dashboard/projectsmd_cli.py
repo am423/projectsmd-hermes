@@ -130,6 +130,7 @@ def init(root: str | Path, **kwargs) -> dict[str, Any]:
     if not PROJECTSMD_AVAILABLE:
         return {"ok": False, "returncode": -1, "stdout": "", "stderr": "projectsmd not available"}
     root_path = Path(root).expanduser().resolve()
+    root_path.mkdir(parents=True, exist_ok=True)
     project_md = root_path / "project.md"
     if project_md.exists():
         return {"ok": False, "returncode": -1, "stdout": "", "stderr": "project.md already exists"}

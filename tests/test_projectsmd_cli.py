@@ -69,6 +69,13 @@ class TestProjectsmdCLI:
             text = project_md.read_text()
             assert "Test Project" in text
 
+    def test_init_creates_missing_root_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "new-project"
+            result = init(root=root, name="New Project", owner="Adam", description="x", core_value="y")
+            assert result["ok"] is True
+            assert (root / "project.md").exists()
+
     def test_init_refuses_existing(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "project.md").write_text("---\nproject: Existing\n---\n")

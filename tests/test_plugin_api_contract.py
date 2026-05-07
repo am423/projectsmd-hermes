@@ -35,8 +35,17 @@ class TestHealth:
         assert "tmux" in data
         assert "hermes" in data
         assert "roots" in data
+        assert "root_status" in data
 
-    def test_health_no_double_prefix(self):
+    def test_config_put_merges_and_returns_root_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("projectsmd_dashboard.api.load_config", return_value={"project_roots": [], "auto_validate": True}), \
+                 patch("projectsmd_dashboard.api.save_config"):
+                response = client.put("/api/plugins/projectsmd/config", json={"project_roots": [tmp]})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["project_roots"]
+        assert data["root_status"][0]["ok"] is True
         response = client.get("/api/plugins/projectsmd/health")
         assert response.status_code == 200
 

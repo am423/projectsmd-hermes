@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .config import load_config, save_config
+from .config import load_config, save_config, validate_roots
 from .diff_preview import diff_from_file
 from .project_scan import get_project_detail, scan_projects
 from .projectsmd_cli import (
@@ -79,6 +79,7 @@ def health() -> dict[str, Any]:
         "tmux": _tool_version("tmux"),
         "hermes": _tool_version("hermes"),
         "roots": roots,
+        "root_status": validate_roots(roots),
     }
 
 
@@ -89,8 +90,10 @@ def get_config() -> dict[str, Any]:
 
 @router.put("/config")
 def put_config(config: dict[str, Any]) -> dict[str, Any]:
-    save_config(config)
-    return config
+    current = load_config()
+    merged = {**current, **config}
+    save_config(merged)
+    return {**merged, "root_status": validate_roots(merged.get("project_roots", []))}
 
 
 @router.get("/projects")

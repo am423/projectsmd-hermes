@@ -400,18 +400,22 @@
             }))) : null));
   }
 
-  function RootManager({ roots, onChange }) {
+  function RootManager({ roots, rootStatus, onChange }) {
     const [input, setInput] = useState("");
     return h("div", { className: "flex flex-col gap-2" },
       h("div", { className: "flex flex-col gap-2" },
-        roots.map((root) =>
-          h("div", { key: root, className: "flex items-center justify-between gap-2" },
-            h("code", { className: "rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground" }, shortPath(root)),
+        roots.map((root) => {
+          const status = (rootStatus || []).find((item) => item.path === root || item.path === root.replace(/^~/, ""));
+          return h("div", { key: root, className: "flex items-center justify-between gap-2" },
+            h("div", { className: "min-w-0" },
+              h("code", { className: "block truncate rounded bg-muted/50 px-2 py-1 font-mono text-xs text-muted-foreground" }, shortPath(root)),
+              status ? h("div", { className: cn("mt-1 text-[10px]", status.ok ? "text-emerald-400" : "text-destructive") }, status.ok ? `${status.project_count} project(s)` : status.reason) : null),
             h(Button, {
               variant: "ghost",
               className: "h-6 px-2 text-xs",
               onClick: () => onChange(roots.filter((r) => r !== root)),
-            }, "Remove")))),
+            }, "Remove"));
+        })),
       h("div", { className: "flex gap-2" },
         h("input", {
           value: input,
@@ -424,6 +428,21 @@
           className: "h-7 px-2 text-xs",
           onClick: () => { onChange([...roots, input]); setInput(""); },
         }, "Add")));
+  }
+
+  function CreateProjectModal({ roots, onCreate, onCancel }) {
+    const fields = [
+      { key: "root", label: "Project directory", placeholder: (roots && roots[0] ? roots[0] + "/new-project" : "~/projects/new-project") },
+      { key: "name", label: "Project name", placeholder: "My Project" },
+      { key: "owner", label: "Owner", placeholder: "Adam" },
+      { key: "description", label: "Description", placeholder: "What this project is" },
+      { key: "core_value", label: "Core value", placeholder: "The one thing that matters" },
+      { key: "tags", label: "Tags", placeholder: "hermes, dashboard" },
+    ];
+    return h("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm", role: "dialog", "aria-label": "Create project", onClick: onCancel },
+      h("div", { className: "w-full max-w-lg rounded-lg border border-border bg-background p-4 shadow-xl", onClick: function (e) { e.stopPropagation(); } },
+        h("h3", { className: "mb-3 text-sm font-semibold" }, "Create ProjectsMD project"),
+        h(AddForm, { fields: fields, onSave: onCreate, onCancel: onCancel })));
   }
 
   class ErrorBoundary extends React.Component {
@@ -464,6 +483,9 @@
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState(null);
     const [toasts, setToasts] = useState([]);
+    const [query, setQuery] = useState("");
+    const [phaseFilter, setPhaseFilter] = useState("");
+    const [showCreateProject, setShowCreateProject] = useState(false);
 
     function addToast(message, variant) {
       if (variant === void 0) variant = "default";
@@ -494,6 +516,15 @@
       () => projects.find((project) => project.path === selectedPath),
       [projects, selectedPath],
     );
+    const visibleProjects = useMemo(() => {
+      const q = query.trim().toLowerCase();
+      return projects.filter((project) => {
+        const haystack = [project.name, project.path, project.owner, (project.tags || []).join(" "), project.next_action].join(" ").toLowerCase();
+        if (q && haystack.indexOf(q) === -1) return false;
+        if (phaseFilter && String(project.phase || "").toLowerCase() !== phaseFilter) return false;
+        return true;
+      });
+    }, [projects, query, phaseFilter]);
     const totals = useMemo(() => projects.reduce((acc, project) => {
       const tasks = project.tasks || {};
       acc.done += tasks.done || 0;
@@ -568,6 +599,7 @@
         h("div", { className: "flex items-center gap-2" },
           health && health.projectsmd ? h(Badge, { variant: health.projectsmd.available ? "outline" : "destructive" },
             health.projectsmd.available ? "projectsmd available" : "projectsmd missing") : null,
+          h(Button, { onClick: function () { setShowCreateProject(true); } }, "New Project"),
           h(Button, { onClick: loadProjects, disabled: loading }, loading ? "Scanning..." : "Rescan"),
           h("a", { href: "https://hermes-agent.nousresearch.com/docs", target: "_blank", className: "text-xs text-muted-foreground hover:text-foreground underline" }, "Docs"))),
 
@@ -579,10 +611,29 @@
         h(StatCard, { label: "Blocked", value: totals.blocked, detail: totals.blocked ? "Needs attention" : "No blockers found" }),
         h(StatCard, { label: "Selected", value: selectedProject ? selectedProject.phase || "unknown" : "—", detail: selectedProject ? shortPath(selectedProject.root) : "No project selected" })),
 
+      h(Card, null,
+        h(CardContent, { className: "grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_12rem]" },
+          h("input", { "aria-label": "Search projects", value: query, onChange: (e) => setQuery(e.target.value), placeholder: "Search projects by name, path, owner, tag...", className: "rounded border border-border bg-background px-3 py-2 text-sm" }),
+          h("select", { "aria-label": "Filter by phase", value: phaseFilter, onChange: (e) => setPhaseFilter(e.target.value), className: "rounded border border-border bg-background px-3 py-2 text-sm" },
+            h("option", { value: "" }, "All phases"),
+            ["define", "design", "build", "verify", "ship", "paused"].map((phase) => h("option", { key: phase, value: phase }, phase))))),
+
+      health ? h(Card, null,
+        h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Setup checklist")),
+        h(CardContent, { className: "grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4" },
+          [
+            ["projectsmd", health.projectsmd && health.projectsmd.available, "Install: cargo install --path ."],
+            ["tmux", health.tmux && health.tmux.available, "Install tmux for orchestrator runs"],
+            ["hermes", health.hermes && health.hermes.available, "Install Hermes Agent"],
+            ["roots", (health.root_status || []).some((r) => r.ok), "Add a readable project root"],
+          ].map((item) => h("div", { key: item[0], className: cn("rounded border p-2", item[1] ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/10") },
+            h("div", { className: "font-medium" }, item[1] ? "✓ " : "! ", item[0]),
+            h("div", { className: "mt-1 text-muted-foreground" }, item[1] ? "Ready" : item[2]))))) : null,
+
       h("div", { className: "grid gap-4 lg:grid-cols-1 xl:grid-cols-[22rem_minmax(0,1fr)_18rem]" },
         h(Card, { className: "xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto" },
           h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-base" }, "Project files")),
-          h(CardContent, { className: "pt-0" }, h(ProjectList, { projects, selectedPath, onSelect: setSelectedPath, loading }))),
+          h(CardContent, { className: "pt-0" }, h(ProjectList, { projects: visibleProjects, selectedPath, onSelect: setSelectedPath, loading }))),
         h("div", { className: "min-w-0" }, h(ProjectDetail, { detail, loading: detailLoading, onRefresh: loadDetail })),
         h("div", { className: "flex flex-col gap-4" },
           h(LaunchPanel, { detail, onLaunch: async (task, role) => {
@@ -596,6 +647,7 @@
             h(CardContent, { className: "pt-0" },
               h(RootManager, {
                 roots: (health && health.roots) || [],
+                rootStatus: (health && health.root_status) || [],
                 onChange: async (nextRoots) => {
                   try {
                     await fetchJSON(`${API}/config`, {
@@ -611,6 +663,23 @@
               }))),
             )
           ),
+          showCreateProject ? h(CreateProjectModal, {
+            roots: (health && health.roots) || [],
+            onCancel: function () { setShowCreateProject(false); },
+            onCreate: async function (data) {
+              const required = ["root", "name", "description", "core_value"];
+              const missing = required.filter((key) => !String(data[key] || "").trim());
+              if (missing.length) {
+                addToast("Missing required fields: " + missing.join(", "), "destructive");
+                return;
+              }
+              const res = await fetchJSON(`${API}/projects`, { method: "POST", body: data });
+              setShowCreateProject(false);
+              addToast("Created project " + (res.name || data.name));
+              await loadProjects();
+              if (res.path) setSelectedPath(res.path);
+            },
+          }) : null,
           h(ToastContainer, { toasts: toasts })
         );
   }
