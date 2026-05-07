@@ -28,8 +28,8 @@
   }
 
   const API = SDK.pluginAPI || "/api/plugins/projectsmd";
-  const PANEL_HEADER = "p-4 pb-2";
-  const PANEL_CONTENT = "px-4 pb-4 pt-0";
+  const PANEL_HEADER = "px-4 pb-2 pt-4";
+  const PANEL_CONTENT = "px-4 pb-4 pt-2";
   const PANEL_CONTENT_STACK = PANEL_CONTENT + " flex flex-col gap-3";
   const COMPACT_CONTROL = "h-8 px-3 py-1.5 text-xs";
   const COMPACT_FIELD = "h-8 rounded border border-border bg-background px-3 py-1.5 text-xs";
