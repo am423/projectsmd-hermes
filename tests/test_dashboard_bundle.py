@@ -90,3 +90,12 @@ class TestBundle:
         assert "Quality Gates" in bundle
         assert "GitHub" in bundle
         assert "Ship Checklist" in bundle
+
+    def test_bundle_includes_accessibility_and_loading_markers(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        assert 'role: "dialog"' in bundle
+        assert '"aria-label": "Search projects"' in bundle
+        assert '"aria-label": "Filter by phase"' in bundle
+        assert "Escape" in bundle
+        assert "Loading..." in bundle
+        assert "Scanning..." in bundle
