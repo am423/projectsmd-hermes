@@ -61,7 +61,8 @@ def _tool_version(command: str) -> dict[str, Any]:
     if not path:
         return {"available": False, "path": None, "version": None}
     try:
-        result = subprocess.run([path, "--version"], text=True, capture_output=True, timeout=5)
+        version_arg = "-V" if command == "tmux" else "--version"
+        result = subprocess.run([path, version_arg], text=True, capture_output=True, timeout=5)
         version = (result.stdout or result.stderr).strip().splitlines()[0] if (result.stdout or result.stderr).strip() else ""
     except Exception as exc:  # pragma: no cover - defensive health detail
         version = f"error: {exc}"
