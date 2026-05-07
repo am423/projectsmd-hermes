@@ -247,6 +247,7 @@
 
     const [queueItems, setQueueItems] = useState([]);
     const [queueLoading, setQueueLoading] = useState(false);
+    const [queueNotice, setQueueNotice] = useState(null);
     const [showAddTask, setShowAddTask] = useState(false);
     const [showAddDecision, setShowAddDecision] = useState(false);
     const [showAddDiscovery, setShowAddDiscovery] = useState(false);
@@ -289,11 +290,12 @@
               const proposed = document.querySelector("textarea")?.value;
               if (!proposed) return;
               const res = await fetchJSON(`${API}/projects/${detail.id}/queue`, { method: "POST", body: { path: detail.path, proposed } });
-              alert(res.ok ? "Queued for approval" : (res.error || "Queue failed"));
+              setQueueNotice({ message: res.ok ? "Queued for approval" : (res.error || "Queue failed"), variant: res.ok ? "default" : "destructive" });
               loadQueue();
             } }, "Queue for approval"),
             h("button", { className: "text-xs rounded border border-border px-2 py-1 hover:bg-accent", onClick: loadQueue }, queueLoading ? "Loading..." : "Show pending"),
           ),
+          queueNotice ? h("div", { role: "status", className: cn("rounded border px-2 py-1 text-xs", queueNotice.variant === "destructive" ? "border-destructive/50 bg-destructive/10 text-destructive" : "border-border bg-muted/30 text-foreground") }, queueNotice.message) : null,
           h("div", { id: "queue-list", className: "text-xs" },
             queueItems.map(function (u) {
               return h("div", { key: u.id, className: "border-b border-border py-1 flex flex-col gap-1" },
@@ -548,7 +550,7 @@
     useEffect(() => {
       function onKey(e) {
         if (e.key === "r" && e.ctrlKey) { e.preventDefault(); loadProjects(); }
-        if (e.key === "n" && e.ctrlKey) { e.preventDefault(); const root = prompt("Project root path:"); if (root) { setSelectedPath(root); } }
+        if (e.key === "n" && e.ctrlKey) { e.preventDefault(); addToast("Use the Roots panel to add a project root."); }
         if (e.key === "Escape") { setSelectedPath(null); }
       }
       document.addEventListener("keydown", onKey);

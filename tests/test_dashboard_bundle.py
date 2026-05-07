@@ -32,6 +32,19 @@ class TestBundle:
         assert "SDK.hooks" in bundle
         assert "SDK.utils" in bundle
         assert "SDK.fetchJSON" in bundle
+        assert "SDK.pluginAPI" in bundle
+
+    def test_bundle_avoids_dangerous_browser_apis(self):
+        bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()
+        forbidden = [
+            "innerHTML",
+            "dangerouslySetInnerHTML",
+            "alert(",
+            "prompt(",
+            "location.reload",
+        ]
+        for token in forbidden:
+            assert token not in bundle
 
     def test_bundle_registers_plugin(self):
         bundle = (REPO_ROOT / "dashboard" / "dist" / "index.js").read_text()

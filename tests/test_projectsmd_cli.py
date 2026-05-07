@@ -8,7 +8,13 @@ from pathlib import Path
 
 
 from projectsmd_dashboard.locks import project_lock
-from projectsmd_dashboard.projectsmd_cli import init, task_add, validate, PROJECTSMD_AVAILABLE
+from projectsmd_dashboard.projectsmd_cli import (
+    PROJECTSMD_AVAILABLE,
+    _with_file,
+    init,
+    task_add,
+    validate,
+)
 
 pytestmark = pytest.mark.skipif(
     not PROJECTSMD_AVAILABLE,
@@ -44,6 +50,10 @@ class TestLocks:
 
 
 class TestProjectsmdCLI:
+    def test_file_flag_is_inserted_before_subcommand(self):
+        cmd = _with_file(["projectsmd", "task", "add", "Write tests"], "/tmp/project.md")
+        assert cmd == ["projectsmd", "-f", "/tmp/project.md", "task", "add", "Write tests"]
+
     def test_init_creates_project_md(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = init(

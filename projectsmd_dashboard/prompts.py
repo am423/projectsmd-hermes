@@ -8,10 +8,22 @@ from __future__ import annotations
 from typing import Any
 
 
+def _field(value: Any, name: str, default: Any = None) -> Any:
+    """Read a field from either a dict or dataclass-like object."""
+    if isinstance(value, dict):
+        return value.get(name, default)
+    return getattr(value, name, default)
+
+
+def _current_phase(project: dict[str, Any]) -> str:
+    current_state = project.get("current_state", {})
+    return _field(current_state, "phase", "UNKNOWN")
+
+
 def build_task_prompt(project: dict[str, Any], task_description: str) -> str:
     """Return a prompt for an agent to work on a specific task."""
     name = project.get("name", "Untitled")
-    phase = project.get("current_state", {}).get("phase", "UNKNOWN")
+    phase = _current_phase(project)
     tasks = project.get("sections", {}).get("Tasks", "")
     return (
         f"You are working on the project '{name}' (phase: {phase}).\n\n"
@@ -43,7 +55,7 @@ def build_discovery_prompt(project: dict[str, Any], discovery_text: str) -> str:
 def build_phase_transition_prompt(project: dict[str, Any], next_phase: str) -> str:
     """Return a prompt for an agent to manage a phase transition."""
     name = project.get("name", "Untitled")
-    current_phase = project.get("current_state", {}).get("phase", "UNKNOWN")
+    current_phase = _current_phase(project)
     return (
         f"Project: {name}\n\n"
         f"Transition from {current_phase} to {next_phase}.\n\n"

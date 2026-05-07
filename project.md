@@ -2,7 +2,7 @@
 project: ProjectsMD Dashboard
 status: build
 created: 2026-04-30
-updated: 2026-04-30
+updated: 2026-05-07
 owner: Adam Manning
 agent: ''
 tags: []
@@ -160,3 +160,4 @@ Agentic project management
 
 <!-- Date-stamped development entries -->
 <!-- Format: - **YYYY-MM-DD** — Description. (duration) -->
+- **2026-05-07** — Created a detailed implementation plan for a fully featured ProjectsMD Hermes dashboard addon at docs/plans/2026-05-07-fully-featured-projectsmd-hermes-ui.md.

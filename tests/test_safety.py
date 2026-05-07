@@ -24,6 +24,18 @@ def test_default_policies_allow_safe_command():
     assert result["ok"] is True
 
 
+def test_default_policies_block_destructive_git():
+    result = check_command(["git", "reset", "--hard"])
+    assert result["ok"] is False
+    assert result["policy"] == "no-git-force"
+
+
+def test_default_policies_warns_as_block_for_sudo_review():
+    result = check_command(["sudo", "systemctl", "restart", "hermes"])
+    assert result["ok"] is False
+    assert result["policy"] == "warn-sudo"
+
+
 def test_save_and_load_policies(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "policies.json"

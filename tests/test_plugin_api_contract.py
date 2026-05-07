@@ -8,6 +8,7 @@ from __future__ import annotations
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -54,6 +55,63 @@ class TestProjectDetail:
     def test_detail_404_for_missing(self):
         response = client.get("/api/plugins/projectsmd/projects/detail", params={"path": "/nonexistent/project.md"})
         assert response.status_code == 404
+
+    def test_mutating_routes_require_path(self):
+        routes = [
+            ("/api/plugins/projectsmd/projects/demo/validate", {}),
+            ("/api/plugins/projectsmd/projects/demo/tasks", {"title": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/done", {}),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/block", {"reason": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/unblock", {}),
+            ("/api/plugins/projectsmd/projects/demo/decisions", {"decision": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/discoveries", {"text": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/session", {"summary": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/phase-transition", {"phase": "build"}),
+            ("/api/plugins/projectsmd/projects/demo/archive", {"summary": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/snapshot", {}),
+            ("/api/plugins/projectsmd/projects/demo/diff", {"proposed": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/runs", {"task": "x"}),
+        ]
+        for route, body in routes:
+            response = client.post(route, json=body)
+            assert response.status_code == 400, route
+
+    def test_mutating_routes_404_for_missing_project(self):
+        missing = {"path": "/nonexistent/project.md"}
+        routes = [
+            ("/api/plugins/projectsmd/projects/demo/validate", missing),
+            ("/api/plugins/projectsmd/projects/demo/tasks", {**missing, "title": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/done", missing),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/block", {**missing, "reason": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/tasks/1/unblock", missing),
+            ("/api/plugins/projectsmd/projects/demo/decisions", {**missing, "decision": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/discoveries", {**missing, "text": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/session", {**missing, "summary": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/phase-transition", {**missing, "phase": "build"}),
+            ("/api/plugins/projectsmd/projects/demo/archive", {**missing, "summary": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/snapshot", missing),
+            ("/api/plugins/projectsmd/projects/demo/diff", {**missing, "proposed": "x"}),
+            ("/api/plugins/projectsmd/projects/demo/runs", {**missing, "task": "x"}),
+        ]
+        for route, body in routes:
+            response = client.post(route, json=body)
+            assert response.status_code == 404, route
+
+    def test_launch_run_blocks_unsafe_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp) / "demo"
+            project_dir.mkdir()
+            project_md = project_dir / "project.md"
+            project_md.write_text(
+                "---\nproject: Demo\nstatus: build\n---\n\n## Current State\n\n**Phase:** build\n**Next action:** Test\n**Blockers:** None\n",
+                encoding="utf-8",
+            )
+            with patch("projectsmd_dashboard.api.check_command", return_value={"ok": False, "reason": "blocked"}):
+                response = client.post(
+                    "/api/plugins/projectsmd/projects/demo/runs",
+                    json={"path": str(project_md), "task": "continue"},
+                )
+            assert response.status_code == 403
 
     def test_detail_reads_valid_project(self):
         with tempfile.TemporaryDirectory() as tmp:
