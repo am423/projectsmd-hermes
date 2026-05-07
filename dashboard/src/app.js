@@ -28,6 +28,11 @@
   }
 
   const API = SDK.pluginAPI || "/api/plugins/projectsmd";
+  const PANEL_HEADER = "p-4 pb-2";
+  const PANEL_CONTENT = "px-4 pb-4 pt-0";
+  const PANEL_CONTENT_STACK = PANEL_CONTENT + " flex flex-col gap-3";
+  const COMPACT_CONTROL = "h-8 px-3 py-1.5 text-xs";
+  const COMPACT_FIELD = "h-8 rounded border border-border bg-background px-3 py-1.5 text-xs";
 
   function pct(done, total) {
     if (!total) return 0;
@@ -144,7 +149,7 @@
     return h(Card, null,
       h(CardHeader, { className: "pb-2 flex items-center justify-between" },
         h(CardTitle, { className: "text-sm" }, title),
-        onAdd ? h("button", { className: "text-xs rounded border border-border px-1.5 py-0.5 hover:bg-accent", onClick: onAdd }, "+ Add") : null),
+        onAdd ? h("button", { className: "h-7 rounded border border-border px-2 text-xs hover:bg-accent", onClick: onAdd }, "+ Add") : null),
       h(CardContent, { className: "pt-0" },
         children || h("pre", { className: "max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground" }, body)));
   }
@@ -333,16 +338,16 @@
       fetchJSON(`${API}/roster`).then((res) => { if (res.ok && res.roster) setRoles(res.roster); });
     }, []);
     if (!detail) return h(Card, null,
-      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
-      h(CardContent, { className: "pt-0 text-sm" }, h("p", { className: "text-muted-foreground" }, "Select a project to launch an agent run.")));
+      h(CardHeader, { className: PANEL_HEADER }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
+      h(CardContent, { className: PANEL_CONTENT + " text-sm" }, h("p", { className: "text-muted-foreground" }, "Select a project to launch an agent run.")));
     return h(Card, null,
-      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
-      h(CardContent, { className: "pt-0 text-sm flex flex-col gap-2" },
-        h("input", { className: "rounded border border-border bg-background px-2 py-1 text-xs", placeholder: "Task description...", value: task, onChange: (e) => setTask(e.target.value) }),
-        h("select", { className: "rounded border border-border bg-background px-2 py-1 text-xs", value: role, onChange: (e) => setRole(e.target.value) },
+      h(CardHeader, { className: PANEL_HEADER }, h(CardTitle, { className: "text-sm" }, "Orchestrator")),
+      h(CardContent, { className: PANEL_CONTENT_STACK + " text-sm" },
+        h("input", { className: COMPACT_FIELD, placeholder: "Task description...", value: task, onChange: (e) => setTask(e.target.value) }),
+        h("select", { className: COMPACT_FIELD, value: role, onChange: (e) => setRole(e.target.value) },
           h("option", { value: "" }, "Default role"),
           roles.map((r) => h("option", { key: r.id, value: r.id }, r.name))),
-        h(Button, { className: "w-full", onClick: () => onLaunch(task, role) }, "Launch run")));
+        h(Button, { className: COMPACT_CONTROL + " w-full", onClick: () => onLaunch(task, role) }, "Launch run")));
   }
 
   function RunPanel({ detail }) {
@@ -375,10 +380,10 @@
       return count;
     }
     return h(Card, null,
-      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Orchestrator Runs")),
-      h(CardContent, { className: "pt-0 text-xs flex flex-col gap-2" },
+      h(CardHeader, { className: PANEL_HEADER }, h(CardTitle, { className: "text-sm" }, "Orchestrator Runs")),
+      h(CardContent, { className: PANEL_CONTENT_STACK + " text-xs" },
         activeRuns.length === 0 && completedRuns.length === 0
-          ? h("p", { className: "text-muted-foreground" }, "No runs yet. Launch one above.")
+          ? h("p", { className: "rounded-md border border-dashed border-border bg-muted/20 p-3 text-muted-foreground" }, "No runs yet. Launch one above.")
           : null,
         activeRuns.map(function (r) {
           var subs = subCount(r);
@@ -411,9 +416,9 @@
       try { setRepo(await fetchJSON(`${API}/github/repo?path=${encodeURIComponent(detail.path)}`)); } catch (_) { setRepo({ error: "GitHub unavailable" }); }
     }
     return h(Card, null,
-      h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Verify & Ship")),
-      h(CardContent, { className: "pt-0 text-xs flex flex-col gap-2" },
-        h(Button, { className: "h-7 px-2 text-xs", disabled: !detail, onClick: loadLifecycle }, "Load Quality Gates, GitHub, Ship Checklist"),
+      h(CardHeader, { className: PANEL_HEADER }, h(CardTitle, { className: "text-sm" }, "Verify & Ship")),
+      h(CardContent, { className: PANEL_CONTENT_STACK + " text-xs" },
+        h(Button, { className: COMPACT_CONTROL + " w-full", disabled: !detail, onClick: loadLifecycle }, "Load Quality Gates, GitHub, Ship Checklist"),
         gates ? h("div", { className: "rounded border border-border p-2" }, "Quality Gates: ", gates.error || ((gates.gates || []).length + " configured")) : null,
         repo ? h("div", { className: "rounded border border-border p-2" }, "GitHub: ", repo.error || repo.full_name || repo.repo || "detected") : null,
         ship ? h("div", { className: "rounded border border-border p-2" }, "Ship Checklist: ", ship.error || ((ship.items || []).filter((i) => i.checked).length + "/" + (ship.items || []).length + " complete")) : null));
@@ -431,7 +436,7 @@
               status ? h("div", { className: cn("mt-1 text-[10px]", status.ok ? "text-emerald-400" : "text-destructive") }, status.ok ? `${status.project_count} project(s)` : status.reason) : null),
             h(Button, {
               variant: "ghost",
-              className: "h-6 px-2 text-xs",
+              className: "h-8 px-3 text-xs",
               onClick: () => onChange(roots.filter((r) => r !== root)),
             }, "Remove"));
         })),
@@ -440,11 +445,11 @@
           value: input,
           onChange: (e) => setInput(e.target.value),
           placeholder: "Add root path",
-          className: "flex-1 rounded border border-border bg-background px-2 py-1 text-xs",
+          className: "flex-1 " + COMPACT_FIELD,
           onKeyDown: (e) => { if (e.key === "Enter") { e.preventDefault(); onChange([...roots, input]); setInput(""); } },
         }),
         h(Button, {
-          className: "h-7 px-2 text-xs",
+          className: COMPACT_CONTROL,
           onClick: () => { onChange([...roots, input]); setInput(""); },
         }, "Add")));
   }
@@ -663,8 +668,8 @@
           h(RunPanel, { detail: detail }),
           h(LifecyclePanels, { detail: detail }),
           h(Card, null,
-            h(CardHeader, { className: "pb-2" }, h(CardTitle, { className: "text-sm" }, "Roots")),
-            h(CardContent, { className: "pt-0" },
+            h(CardHeader, { className: PANEL_HEADER }, h(CardTitle, { className: "text-sm" }, "Roots")),
+            h(CardContent, { className: PANEL_CONTENT },
               h(RootManager, {
                 roots: (health && health.roots) || [],
                 rootStatus: (health && health.root_status) || [],
